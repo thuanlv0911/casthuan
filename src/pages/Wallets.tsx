@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/format';
 import type { Wallet } from '../services/api';
 
 export const Wallets: React.FC = () => {
-  const { wallets, addWallet, updateWallet, deleteWallet, addTransaction } = useApp();
+  const { wallets, addWallet, updateWallet, deleteWallet, addTransaction, debts, addDebt, repayDebt, deleteDebt } = useApp();
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
   
   // Calculate sub-totals for display
@@ -15,8 +15,27 @@ export const Wallets: React.FC = () => {
   const momoVnpayTotal = wallets.filter(w => w.name.toLowerCase().includes('momo') || w.name.toLowerCase().includes('vnpay') || w.type === 'e-wallet').reduce((sum, w) => sum + w.balance, 0);
   const tienMatLonTotal = wallets.filter(w => w.type === 'cash' && (w.name.toLowerCase().includes('lớn') || w.name.toLowerCase().includes('lon') || (!w.name.toLowerCase().includes('lẻ') && !w.name.toLowerCase().includes('nhỏ')))).reduce((sum, w) => sum + w.balance, 0);
   const tienLeNhoTotal = wallets.filter(w => w.type === 'cash' && (w.name.toLowerCase().includes('lẻ') || w.name.toLowerCase().includes('nhỏ'))).reduce((sum, w) => sum + w.balance, 0);
+  const taiSanKhacTotal = wallets.filter(w => w.type === 'asset').reduce((sum, w) => sum + w.balance, 0);
+
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+
+  // Sub Tab State
+  const [subTab, setSubTab] = useState<'wallets' | 'debts'>('wallets');
+
+  // Add Debt Form State
+  const [showAddDebtModal, setShowAddDebtModal] = useState<boolean>(false);
+  const [debtBorrower, setDebtBorrower] = useState<string>('');
+  const [debtAmount, setDebtAmount] = useState<string>('');
+  const [debtWalletId, setDebtWalletId] = useState<string>('');
+  const [debtDesc, setDebtDesc] = useState<string>('');
+  const [debtDate, setDebtDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  // Repay Debt Form State
+  const [showRepayModal, setShowRepayModal] = useState<boolean>(false);
+  const [repayDebtItem, setRepayDebtItem] = useState<any>(null);
+  const [repayAmount, setRepayAmount] = useState<string>('');
+  const [repayWalletId, setRepayWalletId] = useState<string>('');
 
   // Top-Up Form State
   const [showTopUpModal, setShowTopUpModal] = useState<boolean>(false);
@@ -28,14 +47,14 @@ export const Wallets: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
   const [editWalletName, setEditWalletName] = useState<string>('');
-  const [editWalletType, setEditWalletType] = useState<'cash' | 'bank' | 'e-wallet'>('bank');
+  const [editWalletType, setEditWalletType] = useState<'cash' | 'bank' | 'e-wallet' | 'asset'>('bank');
   const [editWalletColor, setEditWalletColor] = useState<string>('#3b82f6');
   const [editWalletSubType, setEditWalletSubType] = useState<string>('MBBank');
   const [editWalletBalance, setEditWalletBalance] = useState<string>('');
 
   // Add Wallet Form State
   const [newWalletName, setNewWalletName] = useState<string>('MBBank');
-  const [newWalletType, setNewWalletType] = useState<'cash' | 'bank' | 'e-wallet'>('bank');
+  const [newWalletType, setNewWalletType] = useState<'cash' | 'bank' | 'e-wallet' | 'asset'>('bank');
   const [newWalletBalance, setNewWalletBalance] = useState<string>('');
   const [newWalletColor, setNewWalletColor] = useState<string>('#3b82f6');
   const [newWalletSubType, setNewWalletSubType] = useState<string>('MBBank');
@@ -217,6 +236,77 @@ export const Wallets: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (wallets.length > 0) {
+      if (!debtWalletId) setDebtWalletId(wallets[0].id);
+      if (!repayWalletId) setRepayWalletId(wallets[0].id);
+    }
+  }, [wallets, debtWalletId, repayWalletId]);
+
+  const handleAddDebtSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!debtBorrower.trim() || !debtWalletId) return;
+    const parsedAmount = parseFloat(debtAmount.replace(/[^0-9]/g, '')) || 0;
+    if (parsedAmount <= 0) {
+      alert('Vui lòng nhập số tiền hợp lệ.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addDebt({
+        borrower: debtBorrower.trim(),
+        amount: parsedAmount,
+        walletId: debtWalletId,
+        date: debtDate,
+        description: debtDesc.trim(),
+        status: 'pending'
+      });
+
+      // Reset
+      setDebtBorrower('');
+      setDebtAmount('');
+      setDebtDesc('');
+      setShowAddDebtModal(false);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi ghi nợ mới.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenRepayModal = (debt: any) => {
+    setRepayDebtItem(debt);
+    setRepayAmount(new Intl.NumberFormat('vi-VN').format(debt.amount));
+    if (wallets.length > 0) {
+      setRepayWalletId(wallets[0].id);
+    }
+    setShowRepayModal(true);
+  };
+
+  const handleRepayDebtSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!repayDebtItem || !repayWalletId) return;
+    const parsedAmount = parseFloat(repayAmount.replace(/[^0-9]/g, '')) || 0;
+    if (parsedAmount <= 0) {
+      alert('Vui lòng nhập số tiền hợp lệ.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await repayDebt(repayDebtItem.id, parsedAmount, repayWalletId);
+
+      setShowRepayModal(false);
+      setRepayDebtItem(null);
+      setRepayAmount('');
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi thu hồi nợ.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAmountChange = (val: string, setter: (v: string) => void) => {
     const numeric = val.replace(/[^0-9]/g, '');
     if (numeric === '') {
@@ -287,7 +377,57 @@ export const Wallets: React.FC = () => {
         </div>
       </div>
 
-      {/* Total Balance Panel */}
+      {/* Sub Tab Navigation */}
+      <div style={{
+        display: 'flex',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: '12px',
+        padding: '4px',
+        gap: '4px',
+        marginTop: '8px',
+        marginBottom: '8px'
+      }}>
+        <button
+          type="button"
+          onClick={() => setSubTab('wallets')}
+          style={{
+            flex: 1,
+            background: subTab === 'wallets' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            border: 'none',
+            color: '#fff',
+            padding: '8px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+        >
+          💳 Ví & Tài sản
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('debts')}
+          style={{
+            flex: 1,
+            background: subTab === 'debts' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            border: 'none',
+            color: '#fff',
+            padding: '8px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+        >
+          📓 Sổ ghi nợ ({debts.length})
+        </button>
+      </div>
+
+      {subTab === 'wallets' ? (
+        <>
+          {/* Total Balance Panel */}
       <div style={{
         background: 'var(--card-bg)',
         border: '1px solid var(--card-border)',
@@ -331,6 +471,10 @@ export const Wallets: React.FC = () => {
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💵 TIỀN MẶT LỚN</span>
           <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tienMatLonTotal)}</span>
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💎 TÀI SẢN KHÁC</span>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(taiSanKhacTotal)}</span>
         </div>
       </div>
 
@@ -442,6 +586,157 @@ export const Wallets: React.FC = () => {
           ))
         )}
       </div>
+        </>
+      ) : (
+        <>
+          {/* Total Debt Panel */}
+          <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>TỔNG TIỀN CHO VAY (CHƯA THU)</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b' }}>{formatCurrency(debts.reduce((sum, d) => sum + d.amount, 0))}</span>
+          </div>
+
+          <button 
+            type="button"
+            onClick={() => setShowAddDebtModal(true)}
+            style={{
+              background: 'var(--primary)',
+              border: 'none',
+              color: '#fff',
+              padding: '12px',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: 600,
+              width: '100%',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px var(--primary-glow)'
+            }}
+          >
+            <PlusCircle size={15} /> Ghi nợ mới (Cho vay)
+          </button>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+            {debts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--card-border)' }}>
+                Hiện chưa có khoản cho vay nào.
+              </div>
+            ) : (
+              debts.map(d => {
+                const w = wallets.find(wallet => wallet.id === d.walletId);
+                return (
+                  <div 
+                    key={d.id}
+                    style={{
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--card-border)',
+                      borderRadius: '16px',
+                      padding: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        color: '#f59e0b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <User size={20} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>{d.borrower}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          Ngày vay: {d.date} {d.description ? `• ${d.description}` : ''}
+                        </span>
+                        {w ? (
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                            Nguồn xuất: <strong style={{ color: w.color }}>{w.name}</strong>
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                            Nguồn xuất: <em>Không qua ví</em>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '16px', fontWeight: 800, color: '#f59e0b' }}>
+                        {formatCurrency(d.amount)}
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRepayModal(d)}
+                          style={{
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            color: '#10b981',
+                            border: 'none',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Thu hồi nợ"
+                        >
+                          <Coins size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm('Bạn có chắc chắn muốn xóa khoản nợ này khỏi sổ ghi nợ? Thao tác này sẽ không tạo giao dịch hoàn trả tiền ví.')) {
+                              deleteDebt(d.id);
+                            }
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            border: 'none',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Xóa khoản nợ"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
 
       {/* Add Wallet Modal Overlay */}
       {showAddModal && (
@@ -476,17 +771,24 @@ export const Wallets: React.FC = () => {
                 <select 
                   value={newWalletType} 
                   onChange={e => {
-                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash';
+                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash' | 'asset';
                     setNewWalletType(val);
                     if (val === 'bank') {
                       setNewWalletSubType('MBBank');
                       setNewWalletName('MBBank');
+                      setNewWalletColor('#3b82f6');
                     } else if (val === 'e-wallet') {
                       setNewWalletSubType('Momo');
                       setNewWalletName('Momo');
+                      setNewWalletColor('#d946ef');
                     } else if (val === 'cash') {
                       setNewWalletSubType('Tiền mặt (Lớn)');
                       setNewWalletName('Tiền mặt (Lớn)');
+                      setNewWalletColor('#10b981');
+                    } else if (val === 'asset') {
+                      setNewWalletSubType('Vàng (Gold)');
+                      setNewWalletName('Vàng (Gold)');
+                      setNewWalletColor('#f59e0b');
                     }
                   }}
                   className="form-select"
@@ -494,13 +796,14 @@ export const Wallets: React.FC = () => {
                   <option value="bank">🏦 Ngân hàng (Bank)</option>
                   <option value="e-wallet">📱 Ví điện tử (E-Wallet)</option>
                   <option value="cash">💵 Tiền mặt (Cash)</option>
+                  <option value="asset">💎 Tài sản khác (Asset)</option>
                 </select>
               </div>
 
               {/* Wallet Sub-Type */}
               <div className="form-group">
                 <label>
-                  {newWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : newWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : 'CHI TIẾT TIỀM MẶT'}
+                  {newWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : newWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : newWalletType === 'cash' ? 'CHI TIẾT TIỀM MẶT' : 'CHI TIẾT TÀI SẢN'}
                 </label>
                 {newWalletType === 'bank' && (
                   <select 
@@ -540,6 +843,20 @@ export const Wallets: React.FC = () => {
                   >
                     <option value="Tiền mặt (Lớn)">💵 Tiền mặt (Lớn)</option>
                     <option value="Tiền lẻ (Nhỏ)">💵 Tiền lẻ (Nhỏ)</option>
+                  </select>
+                )}
+                {newWalletType === 'asset' && (
+                  <select 
+                    value={newWalletSubType} 
+                    onChange={e => {
+                      setNewWalletSubType(e.target.value);
+                      setNewWalletName(e.target.value);
+                    }}
+                    className="form-select"
+                  >
+                    <option value="Vàng (Gold)">🪙 Vàng (Gold)</option>
+                    <option value="Cổ phiếu / Crypto">📈 Cổ phiếu / Crypto</option>
+                    <option value="Tài sản khác">💎 Tài sản khác</option>
                   </select>
                 )}
               </div>
@@ -769,17 +1086,24 @@ export const Wallets: React.FC = () => {
                 <select 
                   value={editWalletType} 
                   onChange={e => {
-                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash';
+                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash' | 'asset';
                     setEditWalletType(val);
                     if (val === 'bank') {
                       setEditWalletSubType('MBBank');
                       setEditWalletName('MBBank');
+                      setEditWalletColor('#3b82f6');
                     } else if (val === 'e-wallet') {
                       setEditWalletSubType('Momo');
                       setEditWalletName('Momo');
+                      setEditWalletColor('#d946ef');
                     } else if (val === 'cash') {
                       setEditWalletSubType('Tiền mặt (Lớn)');
                       setEditWalletName('Tiền mặt (Lớn)');
+                      setEditWalletColor('#10b981');
+                    } else if (val === 'asset') {
+                      setEditWalletSubType('Vàng (Gold)');
+                      setEditWalletName('Vàng (Gold)');
+                      setEditWalletColor('#f59e0b');
                     }
                   }}
                   className="form-select"
@@ -787,13 +1111,14 @@ export const Wallets: React.FC = () => {
                   <option value="bank">🏦 Ngân hàng (Bank)</option>
                   <option value="e-wallet">📱 Ví điện tử (E-Wallet)</option>
                   <option value="cash">💵 Tiền mặt (Cash)</option>
+                  <option value="asset">💎 Tài sản khác (Asset)</option>
                 </select>
               </div>
 
               {/* Wallet Sub-Type */}
               <div className="form-group">
                 <label>
-                  {editWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : editWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : 'CHI TIẾT TIỀM MẶT'}
+                  {editWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : editWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : editWalletType === 'cash' ? 'CHI TIẾT TIỀM MẶT' : 'CHI TIẾT TÀI SẢN'}
                 </label>
                 {editWalletType === 'bank' && (
                   <select 
@@ -833,6 +1158,20 @@ export const Wallets: React.FC = () => {
                   >
                     <option value="Tiền mặt (Lớn)">💵 Tiền mặt (Lớn)</option>
                     <option value="Tiền lẻ (Nhỏ)">💵 Tiền lẻ (Nhỏ)</option>
+                  </select>
+                )}
+                {editWalletType === 'asset' && (
+                  <select 
+                    value={editWalletSubType} 
+                    onChange={e => {
+                      setEditWalletSubType(e.target.value);
+                      setEditWalletName(e.target.value);
+                    }}
+                    className="form-select"
+                  >
+                    <option value="Vàng (Gold)">🪙 Vàng (Gold)</option>
+                    <option value="Cổ phiếu / Crypto">📈 Cổ phiếu / Crypto</option>
+                    <option value="Tài sản khác">💎 Tài sản khác</option>
                   </select>
                 )}
               </div>
@@ -882,6 +1221,161 @@ export const Wallets: React.FC = () => {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật ví'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Debt Modal Overlay */}
+      {showAddDebtModal && (
+        <div className="modal-overlay" onClick={() => setShowAddDebtModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Ghi nợ mới (Cho vay)</h2>
+              <button className="modal-close" onClick={() => setShowAddDebtModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddDebtSubmit}>
+              {/* Borrower Name */}
+              <div className="form-group">
+                <label>TÊN NGƯỜI VAY</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Nguyễn Văn A..."
+                  value={debtBorrower}
+                  onChange={e => setDebtBorrower(e.target.value)}
+                  className="form-input"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* Amount */}
+              <div className="form-group">
+                <label>SỐ TIỀN VAY (VND)</label>
+                <input 
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0đ"
+                  value={debtAmount}
+                  onChange={e => handleAmountChange(e.target.value, setDebtAmount)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Source Wallet */}
+              <div className="form-group">
+                <label>NGUỒN TIỀN XUẤT PHÁT</label>
+                <select 
+                  value={debtWalletId}
+                  onChange={e => setDebtWalletId(e.target.value)}
+                  className="form-select"
+                  required
+                >
+                  <option value="none">❌ Không chọn nguồn (đã cho vay từ trước)</option>
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.name} ({formatCurrency(w.balance)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date */}
+              <div className="form-group">
+                <label>NGÀY GHI NỢ</label>
+                <input 
+                  type="date"
+                  value={debtDate}
+                  onChange={e => setDebtDate(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="form-group">
+                <label>GHI CHÚ / MÔ TẢ</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Vay tiêu dùng, mua sắm..."
+                  value={debtDesc}
+                  onChange={e => setDebtDesc(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="button-primary"
+                style={{ width: '100%', padding: '14px', marginTop: '16px' }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Đang lưu...' : 'Ghi nợ'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Repay Debt Modal Overlay */}
+      {showRepayModal && repayDebtItem && (
+        <div className="modal-overlay" onClick={() => { setShowRepayModal(false); setRepayDebtItem(null); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Thu hồi nợ: {repayDebtItem.borrower}</h2>
+              <button className="modal-close" onClick={() => { setShowRepayModal(false); setRepayDebtItem(null); }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRepayDebtSubmit}>
+              {/* Repay Amount */}
+              <div className="form-group">
+                <label>SỐ TIỀN THU HỒI (VND)</label>
+                <input 
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0đ"
+                  value={repayAmount}
+                  onChange={e => handleAmountChange(e.target.value, setRepayAmount)}
+                  className="form-input"
+                  required
+                  autoFocus
+                />
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                  Khoản vay gốc: {formatCurrency(repayDebtItem.amount)}
+                </span>
+              </div>
+
+              {/* Destination Wallet */}
+              <div className="form-group">
+                <label>VÍ / TÀI KHOẢN NHẬN TIỀN</label>
+                <select 
+                  value={repayWalletId}
+                  onChange={e => setRepayWalletId(e.target.value)}
+                  className="form-select"
+                  required
+                >
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.name} ({formatCurrency(w.balance)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button 
+                type="submit" 
+                className="button-primary"
+                style={{ width: '100%', padding: '14px', marginTop: '16px' }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Đang thực hiện...' : 'Thu hồi'}
               </button>
             </form>
           </div>

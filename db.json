@@ -39,7 +39,7 @@
       "id": "c090",
       "name": "Techcombank",
       "type": "bank",
-      "balance": 0,
+      "balance": 1000,
       "color": "#ec4899"
     },
     {
@@ -183,6 +183,26 @@
       "destinationWalletId": "b90f",
       "date": "2026-07-24",
       "description": "MBBank"
+    },
+    {
+      "id": "2e7e",
+      "type": "income",
+      "amount": 1000,
+      "category": "Được tặng",
+      "walletId": "c090",
+      "date": "2026-07-24",
+      "description": "Nạp tiền vào ví"
+    }
+  ],
+  "debts": [
+    {
+      "id": "d69c",
+      "borrower": "HAnh",
+      "amount": 8000000,
+      "walletId": "none",
+      "date": "2026-07-24",
+      "description": "Thế khó -.-",
+      "status": "pending"
     }
   ]
 }
