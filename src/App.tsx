@@ -1,122 +1,153 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { BottomNav } from './components/BottomNav';
+import { Dashboard } from './pages/Dashboard';
+import { Transactions } from './pages/Transactions';
+import { Wallets } from './pages/Wallets';
+import { Analytics } from './pages/Analytics';
+import { TransactionForm } from './components/TransactionForm';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import type { Transaction } from './services/api';
 
-function App() {
-  const [count, setCount] = useState(0)
+function AppContent() {
+  const [isAddTxOpen, setIsAddTxOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const { activeTab, error, isLoading, refreshData } = useApp();
+
+  const handleOpenEdit = (tx: Transaction) => {
+    setEditingTransaction(tx);
+    setIsAddTxOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsAddTxOpen(false);
+    setEditingTransaction(null);
+  };
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+      {/* Top Header */}
+      <header 
+        className="glass-panel" 
+        style={{
+          position: 'sticky',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 20px',
+          borderBottom: '1px solid var(--card-border)',
+          zIndex: 80,
+          borderBottomLeftRadius: '16px',
+          borderBottomRightRadius: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '16px'
+          }}>
+            C
+          </div>
+          <span style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.02em' }}>casthuan</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+
+        <button 
+          onClick={refreshData}
+          disabled={isLoading}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          className={`refresh-btn ${isLoading ? 'spinning' : ''}`}
         >
-          Count is {count}
+          <RefreshCw size={16} />
         </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {/* Global Error Banner */}
+      {error && (
+        <div style={{
+          margin: '12px 20px 0 20px',
+          background: 'rgba(244, 63, 94, 0.15)',
+          border: '1px solid rgba(244, 63, 94, 0.2)',
+          color: 'var(--expense-color)',
+          padding: '12px',
+          borderRadius: '12px',
+          fontSize: '13px',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      {/* Main Content Area */}
+      <main style={{ flex: 1, overflowY: 'auto' }}>
+        {activeTab === 'dashboard' && (
+          <Dashboard 
+            onOpenAddTransaction={() => setIsAddTxOpen(true)} 
+            onOpenEdit={handleOpenEdit} 
+          />
+        )}
+        {activeTab === 'transactions' && (
+          <Transactions 
+            onOpenEdit={handleOpenEdit} 
+          />
+        )}
+        {activeTab === 'wallets' && <Wallets />}
+        {activeTab === 'analytics' && <Analytics />}
+      </main>
+
+      {/* Bottom Navigation */}
+      <BottomNav onOpenAddTransaction={() => setIsAddTxOpen(true)} />
+
+      {/* Add Transaction Modal */}
+      <TransactionForm isOpen={isAddTxOpen} onClose={handleCloseForm} editingTransaction={editingTransaction} />
+
+      <style>{`
+        .refresh-btn:active {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .spinning {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}
+
+export default App;

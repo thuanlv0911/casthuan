@@ -1,0 +1,70 @@
+{
+  "wallets": [
+    {
+      "id": "w1",
+      "name": "Tiền mặt (Cash)",
+      "type": "cash",
+      "balance": -25000,
+      "color": "#10b981"
+    },
+    {
+      "id": "w2",
+      "name": "TPBank",
+      "type": "bank",
+      "balance": 46000,
+      "color": "#a855f7"
+    },
+    {
+      "id": "b90f",
+      "name": "MBBankSDT",
+      "type": "bank",
+      "balance": 0,
+      "color": "#3b82f6"
+    },
+    {
+      "id": "865d",
+      "name": "MBBank09",
+      "type": "bank",
+      "balance": 0,
+      "color": "#6366f1"
+    }
+  ],
+  "transactions": [
+    {
+      "type": "expense",
+      "amount": 60000,
+      "category": "Xăng xe",
+      "walletId": "w1",
+      "date": "2026-07-23",
+      "description": "đổ xăng",
+      "id": "9851"
+    },
+    {
+      "type": "expense",
+      "amount": 25000,
+      "category": "Ăn uống",
+      "walletId": "w2",
+      "date": "2026-07-23",
+      "description": "xôi",
+      "id": "c91c"
+    },
+    {
+      "type": "expense",
+      "amount": 35000,
+      "category": "Ăn uống",
+      "walletId": "w2",
+      "date": "2026-07-23",
+      "description": "bánh mỳ",
+      "id": "da46"
+    },
+    {
+      "id": "e99d",
+      "type": "expense",
+      "amount": 3000,
+      "category": "Mua sắm",
+      "walletId": "w2",
+      "date": "2026-07-24",
+      "description": "Mua móc khóa"
+    }
+  ]
+}
