@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowRightLeft, TrendingDown, TrendingUp } from 'lucide-react';
+import { X, ArrowRightLeft, TrendingDown, TrendingUp, Settings, Trash2, Pencil, Plus, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { Transaction } from '../services/api';
 import { parseQuickInput } from '../utils/parser';
@@ -10,19 +10,27 @@ interface TransactionFormProps {
   editingTransaction?: Transaction | null;
 }
 
-const CATEGORIES = {
+const defaultCategories = {
   expense: ['Ăn uống', 'Mua sắm', 'Tiền nhà', 'Xăng xe', 'Sức khỏe', 'Giải trí', 'Học tập', 'Nợ', 'Khác'],
   income: ['Lương', 'Freelance', 'Được tặng', 'Đầu tư', 'Nợ', 'Khác'],
-  transfer: ['Chuyển khoản'],
 };
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, editingTransaction }) => {
-  const { wallets, addTransaction, updateTransaction } = useApp();
+  const { 
+    wallets, addTransaction, updateTransaction,
+    categories, addCategory, updateCategory, deleteCategory
+  } = useApp();
   const [quickInput, setQuickInput] = useState<string>('');
   const [type, setType] = useState<'income' | 'expense' | 'transfer'>('expense');
   const [amount, setAmount] = useState<string>('');
   const [category, setCategory] = useState<string>('Ăn uống');
   const [walletId, setWalletId] = useState<string>('');
+
+  // Category CRUD Local States
+  const [showManageCategories, setShowManageCategories] = useState<boolean>(false);
+  const [newCatName, setNewCatName] = useState<string>('');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState<string>('');
   const [destinationWalletId, setDestinationWalletId] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState<string>('');
@@ -84,6 +92,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     }
   };
 
+  const currentCategories = type === 'transfer'
+    ? ['Chuyển khoản']
+    : (categories.filter(c => c.type === type).length > 0
+        ? categories.filter(c => c.type === type).map(c => c.name)
+        : defaultCategories[type as 'expense' | 'income']);
+
   // Adjust categories when type changes
   useEffect(() => {
     if (editingTransaction && type === editingTransaction.type) {
@@ -92,9 +106,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     if (type === 'transfer') {
       setCategory('Chuyển khoản');
     } else {
-      setCategory(CATEGORIES[type][0]);
+      setCategory(currentCategories[0] || '');
     }
-  }, [type, editingTransaction]);
+  }, [type, categories, editingTransaction]);
 
   if (!isOpen) return null;
 
@@ -359,13 +373,33 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
           {/* Category Selector (Hidden for Transfers) */}
           {type !== 'transfer' && (
             <div className="form-group">
-              <label>HẠNG MỤC</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ margin: 0 }}>HẠNG MỤC</label>
+                <button
+                  type="button"
+                  onClick={() => setShowManageCategories(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 4px'
+                  }}
+                >
+                  <Settings size={12} /> Quản lý
+                </button>
+              </div>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
                 className="form-select"
               >
-                {CATEGORIES[type].map(cat => (
+                {currentCategories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -407,6 +441,171 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
           </button>
         </form>
       </div>
+
+      {/* Manage Categories Sub-Modal */}
+      {showManageCategories && (
+        <div 
+          className="modal-overlay" 
+          style={{ zIndex: 1100, background: 'rgba(0,0,0,0.85)' }}
+          onClick={() => { setShowManageCategories(false); setEditingCatId(null); }}
+        >
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '360px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+                Quản lý Hạng mục {type === 'expense' ? 'Chi' : 'Thu'}
+              </h3>
+              <button 
+                className="modal-close" 
+                onClick={() => { setShowManageCategories(false); setEditingCatId(null); }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
+              {/* Add category form */}
+              <form 
+                onSubmit={async e => {
+                  e.preventDefault();
+                  if (!newCatName.trim()) return;
+                  try {
+                    await addCategory({
+                      name: newCatName.trim(),
+                      type: type as 'expense' | 'income'
+                    });
+                    setNewCatName('');
+                  } catch (err: any) {
+                    alert(err.message || 'Lỗi khi thêm hạng mục.');
+                  }
+                }}
+                style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}
+              >
+                <input 
+                  type="text"
+                  placeholder="Tên hạng mục mới..."
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  className="form-input"
+                  style={{ marginBottom: 0, flex: 1 }}
+                  required
+                />
+                <button 
+                  type="submit"
+                  className="button-primary"
+                  style={{ padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Plus size={16} />
+                </button>
+              </form>
+
+              {/* List of categories */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {categories.filter(c => c.type === type).length === 0 ? (
+                  defaultCategories[type as 'expense' | 'income'].map(name => (
+                    <div 
+                      key={name}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        background: 'var(--card-bg)',
+                        borderRadius: '10px',
+                        border: '1px solid var(--card-border)'
+                      }}
+                    >
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>{name}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Mặc định</span>
+                    </div>
+                  ))
+                ) : (
+                  categories.filter(c => c.type === type).map(cat => (
+                    <div 
+                      key={cat.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        background: 'var(--card-bg)',
+                        borderRadius: '10px',
+                        border: '1px solid var(--card-border)'
+                      }}
+                    >
+                      {editingCatId === cat.id ? (
+                        <form 
+                          onSubmit={async e => {
+                            e.preventDefault();
+                            if (!editingCatName.trim()) return;
+                            try {
+                              await updateCategory(cat.id, { name: editingCatName.trim() });
+                              setEditingCatId(null);
+                            } catch (err: any) {
+                              alert(err.message || 'Lỗi khi cập nhật.');
+                            }
+                          }}
+                          style={{ display: 'flex', gap: '6px', flex: 1 }}
+                        >
+                          <input 
+                            type="text"
+                            value={editingCatName}
+                            onChange={e => setEditingCatName(e.target.value)}
+                            className="form-input"
+                            style={{ marginBottom: 0, padding: '4px 8px', fontSize: '13px', flex: 1 }}
+                            required
+                            autoFocus
+                          />
+                          <button 
+                            type="submit"
+                            style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '4px' }}
+                          >
+                            <Check size={16} />
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: '14px', fontWeight: 500 }}>{cat.name}</span>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCatId(cat.id);
+                                setEditingCatName(cat.name);
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (window.confirm(`Bạn có chắc muốn xóa hạng mục "${cat.name}"?`)) {
+                                  try {
+                                    await deleteCategory(cat.id);
+                                  } catch (err: any) {
+                                    alert(err.message || 'Lỗi khi xóa.');
+                                  }
+                                }
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
