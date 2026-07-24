@@ -11,8 +11,13 @@ interface TransactionsProps {
 
 export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
   const { transactions, wallets, deleteTransaction } = useApp();
+  const [filterType, setFilterType] = useState<string>('All');
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterWallet, setFilterWallet] = useState<string>('All');
+  const [filterTimeRange, setFilterTimeRange] = useState<string>('All');
+  const [filterStartDate, setFilterStartDate] = useState<string>('');
+  const [filterEndDate, setFilterEndDate] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
 
   // Extract unique categories from transactions for the filter dropdown
@@ -27,11 +32,59 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
   // Filtered transactions list
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
+      // 1. Search Query Match
+      const cleanQuery = searchQuery.trim().toLowerCase();
+      const matchSearch = !cleanQuery || 
+        t.description.toLowerCase().includes(cleanQuery) || 
+        t.category.toLowerCase().includes(cleanQuery);
+
+      // 2. Type Match
+      const matchType = filterType === 'All' || t.type === filterType;
+
+      // 3. Category Match
       const matchCategory = filterCategory === 'All' || t.category === filterCategory;
+
+      // 4. Wallet Match
       const matchWallet = filterWallet === 'All' || t.walletId === filterWallet || t.destinationWalletId === filterWallet;
-      return matchCategory && matchWallet;
+
+      // 5. Time Range Match
+      let matchTime = true;
+      if (filterTimeRange !== 'All') {
+        const txDate = new Date(t.date);
+        txDate.setHours(0, 0, 0, 0);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (filterTimeRange === 'today') {
+          matchTime = txDate.getTime() === today.getTime();
+        } else if (filterTimeRange === 'yesterday') {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          matchTime = txDate.getTime() === yesterday.getTime();
+        } else if (filterTimeRange === 'thisMonth') {
+          matchTime = txDate.getFullYear() === today.getFullYear() && txDate.getMonth() === today.getMonth();
+        } else if (filterTimeRange === 'lastMonth') {
+          const lastMonth = new Date(today);
+          lastMonth.setMonth(lastMonth.getMonth() - 1);
+          matchTime = txDate.getFullYear() === lastMonth.getFullYear() && txDate.getMonth() === lastMonth.getMonth();
+        } else if (filterTimeRange === 'custom') {
+          if (filterStartDate) {
+            const start = new Date(filterStartDate);
+            start.setHours(0, 0, 0, 0);
+            if (txDate.getTime() < start.getTime()) matchTime = false;
+          }
+          if (filterEndDate) {
+            const end = new Date(filterEndDate);
+            end.setHours(23, 59, 59, 999);
+            if (txDate.getTime() > end.getTime()) matchTime = false;
+          }
+        }
+      }
+
+      return matchSearch && matchType && matchCategory && matchWallet && matchTime;
     });
-  }, [transactions, filterCategory, filterWallet]);
+  }, [transactions, searchQuery, filterType, filterCategory, filterWallet, filterTimeRange, filterStartDate, filterEndDate]);
 
   // Group transactions by date
   const groupedTransactions = useMemo(() => {
@@ -57,7 +110,11 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
     }
   };
 
-  const activeFiltersCount = (filterCategory !== 'All' ? 1 : 0) + (filterWallet !== 'All' ? 1 : 0);
+  const activeFiltersCount = 
+    (filterType !== 'All' ? 1 : 0) + 
+    (filterCategory !== 'All' ? 1 : 0) + 
+    (filterWallet !== 'All' ? 1 : 0) + 
+    (filterTimeRange !== 'All' ? 1 : 0);
 
   return (
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.3s' }}>
@@ -68,6 +125,44 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
           <h2 style={{ fontSize: '20px', fontWeight: 700 }}>Lịch sử Giao dịch</h2>
           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Hiển thị {filteredTransactions.length} bản ghi</span>
         </div>
+      </div>
+
+      {/* Search & Filter Row */}
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <input
+            type="text"
+            placeholder="Tìm kiếm giao dịch..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="form-input"
+            style={{
+              marginBottom: 0,
+              paddingLeft: '12px',
+              paddingRight: '30px',
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--card-border)',
+              color: 'var(--text-primary)',
+              height: '42px',
+              fontSize: '13px'
+            }}
+          />
+          {searchQuery && (
+            <X 
+              size={15} 
+              style={{ 
+                position: 'absolute', 
+                right: '10px', 
+                top: '50%', 
+                transform: 'translateY(-50%)', 
+                cursor: 'pointer', 
+                color: 'var(--text-secondary)' 
+              }}
+              onClick={() => setSearchQuery('')}
+            />
+          )}
+        </div>
 
         <button 
           onClick={() => setShowFilterModal(true)}
@@ -75,7 +170,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
             background: activeFiltersCount > 0 ? 'var(--primary-glow)' : 'rgba(255, 255, 255, 0.05)',
             border: activeFiltersCount > 0 ? '1px solid var(--primary)' : '1px solid var(--card-border)',
             color: activeFiltersCount > 0 ? 'var(--primary)' : 'var(--text-primary)',
-            padding: '10px 14px',
+            padding: '0 14px',
             borderRadius: '12px',
             fontSize: '13px',
             fontWeight: 600,
@@ -83,7 +178,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
             alignItems: 'center',
             gap: '6px',
             cursor: 'pointer',
-            position: 'relative'
+            position: 'relative',
+            height: '42px'
           }}
         >
           <Filter size={15} /> Bộ lọc
@@ -111,7 +207,23 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
 
       {/* Filter Chips Preview */}
       {activeFiltersCount > 0 && (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '-4px' }}>
+          {filterType !== 'All' && (
+            <span style={{
+              background: 'rgba(255,255,255,0.05)',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              color: 'var(--text-primary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid var(--card-border)'
+            }}>
+              Loại: {filterType === 'income' ? 'Tiền vào' : filterType === 'expense' ? 'Tiền ra' : 'Chuyển khoản'}
+              <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterType('All')} />
+            </span>
+          )}
           {filterCategory !== 'All' && (
             <span style={{
               background: 'rgba(255,255,255,0.05)',
@@ -142,6 +254,31 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
             }}>
               Ví: {wallets.find(w => w.id === filterWallet)?.name || filterWallet}
               <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterWallet('All')} />
+            </span>
+          )}
+          {filterTimeRange !== 'All' && (
+            <span style={{
+              background: 'rgba(255,255,255,0.05)',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              color: 'var(--text-primary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid var(--card-border)'
+            }}>
+              Thời gian: {
+                filterTimeRange === 'today' ? 'Hôm nay' : 
+                filterTimeRange === 'yesterday' ? 'Hôm qua' : 
+                filterTimeRange === 'thisMonth' ? 'Tháng này' : 
+                filterTimeRange === 'lastMonth' ? 'Tháng trước' : 'Tùy chỉnh'
+              }
+              <X size={12} style={{ cursor: 'pointer' }} onClick={() => {
+                setFilterTimeRange('All');
+                setFilterStartDate('');
+                setFilterEndDate('');
+              }} />
             </span>
           )}
         </div>
@@ -289,6 +426,21 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
+              {/* Type Filter */}
+              <div className="form-group">
+                <label>LOẠI GIAO DỊCH</label>
+                <select 
+                  value={filterType} 
+                  onChange={e => setFilterType(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="All">Tất cả loại giao dịch</option>
+                  <option value="expense">Tiền ra (Chi tiêu)</option>
+                  <option value="income">Tiền vào (Thu nhập)</option>
+                  <option value="transfer">Chuyển khoản nội bộ</option>
+                </select>
+              </div>
+
               {/* Category Filter */}
               <div className="form-group">
                 <label>HẠNG MỤC</label>
@@ -319,12 +471,59 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
                 </select>
               </div>
 
+              {/* Time Range Filter */}
+              <div className="form-group">
+                <label>KHOẢNG THỜI GIAN</label>
+                <select 
+                  value={filterTimeRange} 
+                  onChange={e => setFilterTimeRange(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="All">Tất cả thời gian</option>
+                  <option value="today">Hôm nay</option>
+                  <option value="yesterday">Hôm qua</option>
+                  <option value="thisMonth">Tháng này</option>
+                  <option value="lastMonth">Tháng trước</option>
+                  <option value="custom">Tùy chọn khoảng ngày</option>
+                </select>
+              </div>
+
+              {/* Custom Date Pickers */}
+              {filterTimeRange === 'custom' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '-6px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '10px' }}>TỪ NGÀY</label>
+                    <input 
+                      type="date" 
+                      value={filterStartDate} 
+                      onChange={e => setFilterStartDate(e.target.value)}
+                      className="form-input"
+                      style={{ fontSize: '12px', padding: '10px' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '10px' }}>ĐẾN NGÀY</label>
+                    <input 
+                      type="date" 
+                      value={filterEndDate} 
+                      onChange={e => setFilterEndDate(e.target.value)}
+                      className="form-input"
+                      style={{ fontSize: '12px', padding: '10px' }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', marginTop: '12px' }}>
                 <button 
                   onClick={() => {
+                    setFilterType('All');
                     setFilterCategory('All');
                     setFilterWallet('All');
+                    setFilterTimeRange('All');
+                    setFilterStartDate('');
+                    setFilterEndDate('');
                     setShowFilterModal(false);
                   }}
                   className="button-secondary"

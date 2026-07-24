@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../services/api';
-import type { Wallet, Transaction, Debt, Asset } from '../services/api';
+import type { Wallet, Transaction, Debt, Asset, Category } from '../services/api';
 
 interface AppContextType {
   wallets: Wallet[];
   transactions: Transaction[];
   debts: Debt[];
   assets: Asset[];
+  categories: Category[];
   isLoading: boolean;
   error: string | null;
   activeTab: string;
@@ -26,6 +27,9 @@ interface AppContextType {
   updateAsset: (id: string, asset: Partial<Asset>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
   updateGoldPrices: () => Promise<{ updatedCount: number; details: string[] }>;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,6 +39,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -43,16 +48,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoading(true);
     setError(null);
     try {
-      const [wData, tData, dData, aData] = await Promise.all([
+      const [wData, tData, dData, aData, cData] = await Promise.all([
         api.getWallets(),
         api.getTransactions(),
         api.getDebts(),
-        api.getAssets()
+        api.getAssets(),
+        api.getCategories()
       ]);
       setWallets(wData);
       setTransactions(tData);
       setDebts(dData);
       setAssets(aData);
+      setCategories(cData);
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Có lỗi xảy ra khi đồng bộ dữ liệu.');
@@ -481,6 +488,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const addCategory = async (catData: Omit<Category, 'id'>) => {
+    setIsLoading(true);
+    try {
+      const newCat = await api.createCategory(catData);
+      setCategories(prev => [...prev, newCat]);
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể thêm hạng mục mới.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateCategory = async (id: string, catData: Partial<Category>) => {
+    setIsLoading(true);
+    try {
+      const updatedCat = await api.updateCategory(id, catData);
+      setCategories(prev => prev.map(c => c.id === id ? updatedCat : c));
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể cập nhật hạng mục.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    setIsLoading(true);
+    try {
+      await api.deleteCategory(id);
+      setCategories(prev => prev.filter(c => c.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể xóa hạng mục.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -488,6 +534,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         transactions,
         debts,
         assets,
+        categories,
         isLoading,
         error,
         activeTab,
@@ -506,6 +553,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateAsset,
         deleteAsset,
         updateGoldPrices,
+        addCategory,
+        updateCategory,
+        deleteCategory,
       }}
     >
       {children}

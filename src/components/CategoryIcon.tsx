@@ -13,7 +13,12 @@ import {
   Gift, 
   TrendingUp, 
   Coins,
-  HelpCircle 
+  HelpCircle,
+  Heart,
+  Plane,
+  Zap,
+  Wifi,
+  Wrench
 } from 'lucide-react';
 
 interface CategoryIconProps {
@@ -72,6 +77,41 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({ category, type, size
     case 'nợ':
     case 'no':
       return <Coins size={size} />;
+    
+    // Custom common categories mapping
+    case 'làm đẹp':
+    case 'lam dep':
+    case 'sức khỏe & sắc đẹp':
+    case 'spa':
+    case 'mỹ phẩm':
+    case 'yêu bản thân':
+      return <Heart size={size} />;
+      
+    case 'du lịch':
+    case 'du lich':
+    case 'vé máy bay':
+    case 'khách sạn':
+      return <Plane size={size} />;
+      
+    case 'điện nước':
+    case 'dien nuoc':
+    case 'hóa đơn':
+    case 'hoa don':
+    case 'tiền điện':
+    case 'tiền nước':
+      return <Zap size={size} />;
+      
+    case 'internet':
+    case 'wifi':
+    case 'cáp':
+    case 'điện thoại':
+      return <Wifi size={size} />;
+      
+    case 'sửa chữa':
+    case 'sua chua':
+    case 'bảo dưỡng':
+    case 'sửa xe':
+      return <Wrench size={size} />;
 
     default:
       return <HelpCircle size={size} />;

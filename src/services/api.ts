@@ -18,6 +18,12 @@ export interface Asset {
   color: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  type: 'income' | 'expense';
+}
+
 export interface Transaction {
   id: string;
   type: 'income' | 'expense' | 'transfer';
@@ -190,5 +196,39 @@ export const api = {
     });
     if (!res.ok) throw new Error('Failed to auto-update gold prices from website');
     return res.json();
+  },
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    const res = await fetch(`${API_BASE}/categories`);
+    if (!res.ok) throw new Error('Failed to fetch categories');
+    return res.json();
+  },
+
+  async createCategory(data: Omit<Category, 'id'>): Promise<Category> {
+    const res = await fetch(`${API_BASE}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create category');
+    return res.json();
+  },
+
+  async updateCategory(id: string, data: Partial<Category>): Promise<Category> {
+    const res = await fetch(`${API_BASE}/categories/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update category');
+    return res.json();
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/categories/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete category');
   },
 };
