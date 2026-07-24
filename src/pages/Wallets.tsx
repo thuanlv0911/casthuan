@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/format';
-import type { Wallet } from '../services/api';
+import type { Wallet, Asset } from '../services/api';
 
 export const Wallets: React.FC = () => {
-  const { wallets, addWallet, updateWallet, deleteWallet, addTransaction, debts, addDebt, repayDebt, deleteDebt } = useApp();
+  const { 
+    wallets, addWallet, updateWallet, deleteWallet, addTransaction, 
+    debts, addDebt, repayDebt, deleteDebt,
+    assets, addAsset, updateAsset, deleteAsset 
+  } = useApp();
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
   
   // Calculate sub-totals for display
@@ -15,13 +19,12 @@ export const Wallets: React.FC = () => {
   const momoVnpayTotal = wallets.filter(w => w.name.toLowerCase().includes('momo') || w.name.toLowerCase().includes('vnpay') || w.type === 'e-wallet').reduce((sum, w) => sum + w.balance, 0);
   const tienMatLonTotal = wallets.filter(w => w.type === 'cash' && (w.name.toLowerCase().includes('lớn') || w.name.toLowerCase().includes('lon') || (!w.name.toLowerCase().includes('lẻ') && !w.name.toLowerCase().includes('nhỏ')))).reduce((sum, w) => sum + w.balance, 0);
   const tienLeNhoTotal = wallets.filter(w => w.type === 'cash' && (w.name.toLowerCase().includes('lẻ') || w.name.toLowerCase().includes('nhỏ'))).reduce((sum, w) => sum + w.balance, 0);
-  const taiSanKhacTotal = wallets.filter(w => w.type === 'asset').reduce((sum, w) => sum + w.balance, 0);
 
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
 
   // Sub Tab State
-  const [subTab, setSubTab] = useState<'wallets' | 'debts'>('wallets');
+  const [subTab, setSubTab] = useState<'wallets' | 'assets' | 'debts'>('wallets');
 
   // Add Debt Form State
   const [showAddDebtModal, setShowAddDebtModal] = useState<boolean>(false);
@@ -37,6 +40,27 @@ export const Wallets: React.FC = () => {
   const [repayAmount, setRepayAmount] = useState<string>('');
   const [repayWalletId, setRepayWalletId] = useState<string>('');
 
+  // Add Asset Form State
+  const [showAddAssetModal, setShowAddAssetModal] = useState<boolean>(false);
+  const [newAssetName, setNewAssetName] = useState<string>('Vàng SJC');
+  const [newAssetUnit, setNewAssetUnit] = useState<string>('Chỉ');
+  const [newAssetQuantity, setNewAssetQuantity] = useState<string>('');
+  const [newAssetPricePerUnit, setNewAssetPricePerUnit] = useState<string>('');
+  const [newAssetDate, setNewAssetDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [newAssetDesc, setNewAssetDesc] = useState<string>('');
+  const [newAssetColor, setNewAssetColor] = useState<string>('#f59e0b');
+
+  // Edit Asset Form State
+  const [showEditAssetModal, setShowEditAssetModal] = useState<boolean>(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [editAssetName, setEditAssetName] = useState<string>('');
+  const [editAssetUnit, setEditAssetUnit] = useState<string>('');
+  const [editAssetQuantity, setEditAssetQuantity] = useState<string>('');
+  const [editAssetPricePerUnit, setEditAssetPricePerUnit] = useState<string>('');
+  const [editAssetDate, setEditAssetDate] = useState<string>('');
+  const [editAssetDesc, setEditAssetDesc] = useState<string>('');
+  const [editAssetColor, setEditAssetColor] = useState<string>('#f59e0b');
+
   // Top-Up Form State
   const [showTopUpModal, setShowTopUpModal] = useState<boolean>(false);
   const [selectedWalletForTopUp, setSelectedWalletForTopUp] = useState<Wallet | null>(null);
@@ -47,14 +71,14 @@ export const Wallets: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
   const [editWalletName, setEditWalletName] = useState<string>('');
-  const [editWalletType, setEditWalletType] = useState<'cash' | 'bank' | 'e-wallet' | 'asset'>('bank');
+  const [editWalletType, setEditWalletType] = useState<'cash' | 'bank' | 'e-wallet'>('bank');
   const [editWalletColor, setEditWalletColor] = useState<string>('#3b82f6');
   const [editWalletSubType, setEditWalletSubType] = useState<string>('MBBank');
   const [editWalletBalance, setEditWalletBalance] = useState<string>('');
 
   // Add Wallet Form State
   const [newWalletName, setNewWalletName] = useState<string>('MBBank');
-  const [newWalletType, setNewWalletType] = useState<'cash' | 'bank' | 'e-wallet' | 'asset'>('bank');
+  const [newWalletType, setNewWalletType] = useState<'cash' | 'bank' | 'e-wallet'>('bank');
   const [newWalletBalance, setNewWalletBalance] = useState<string>('');
   const [newWalletColor, setNewWalletColor] = useState<string>('#3b82f6');
   const [newWalletSubType, setNewWalletSubType] = useState<string>('MBBank');
@@ -307,6 +331,86 @@ export const Wallets: React.FC = () => {
     }
   };
 
+  const handleAddAssetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAssetName.trim() || !newAssetUnit.trim()) return;
+    const parsedQty = parseFloat(newAssetQuantity.replace(/[^0-9.]/g, '')) || 0;
+    const parsedPrice = parseFloat(newAssetPricePerUnit.replace(/[^0-9]/g, '')) || 0;
+    if (parsedQty <= 0 || parsedPrice <= 0) {
+      alert('Vui lòng nhập số lượng và giá trị hợp lệ.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addAsset({
+        name: newAssetName.trim(),
+        unit: newAssetUnit.trim(),
+        quantity: parsedQty,
+        valuePerUnit: parsedPrice,
+        date: newAssetDate,
+        description: newAssetDesc.trim(),
+        color: newAssetColor
+      });
+
+      // Reset
+      setNewAssetName('Vàng SJC');
+      setNewAssetUnit('Chỉ');
+      setNewAssetQuantity('');
+      setNewAssetPricePerUnit('');
+      setNewAssetDesc('');
+      setShowAddAssetModal(false);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi thêm tài sản.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    setEditAssetName(asset.name);
+    setEditAssetUnit(asset.unit);
+    setEditAssetQuantity(asset.quantity.toString());
+    setEditAssetPricePerUnit(new Intl.NumberFormat('vi-VN').format(asset.valuePerUnit));
+    setEditAssetDate(asset.date);
+    setEditAssetDesc(asset.description);
+    setEditAssetColor(asset.color);
+    setShowEditAssetModal(true);
+  };
+
+  const handleEditAssetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAsset) return;
+    if (!editAssetName.trim() || !editAssetUnit.trim()) return;
+    const parsedQty = parseFloat(editAssetQuantity.replace(/[^0-9.]/g, '')) || 0;
+    const parsedPrice = parseFloat(editAssetPricePerUnit.replace(/[^0-9]/g, '')) || 0;
+    if (parsedQty <= 0 || parsedPrice <= 0) {
+      alert('Vui lòng nhập số lượng và giá trị hợp lệ.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateAsset(editingAsset.id, {
+        name: editAssetName.trim(),
+        unit: editAssetUnit.trim(),
+        quantity: parsedQty,
+        valuePerUnit: parsedPrice,
+        date: editAssetDate,
+        description: editAssetDesc.trim(),
+        color: editAssetColor
+      });
+
+      setShowEditAssetModal(false);
+      setEditingAsset(null);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi sửa tài sản.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAmountChange = (val: string, setter: (v: string) => void) => {
     const numeric = val.replace(/[^0-9]/g, '');
     if (numeric === '') {
@@ -395,15 +499,35 @@ export const Wallets: React.FC = () => {
             background: subTab === 'wallets' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
             border: 'none',
             color: '#fff',
-            padding: '8px',
+            padding: '8px 4px',
             borderRadius: '8px',
-            fontSize: '13px',
+            fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
-            transition: 'background 0.2s'
+            transition: 'background 0.2s',
+            whiteSpace: 'nowrap'
           }}
         >
-          💳 Ví & Tài sản
+          💳 Ví & Ngân hàng
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('assets')}
+          style={{
+            flex: 1,
+            background: subTab === 'assets' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            border: 'none',
+            color: '#fff',
+            padding: '8px 4px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          💎 Tài sản khác ({assets.length})
         </button>
         <button
           type="button"
@@ -413,15 +537,16 @@ export const Wallets: React.FC = () => {
             background: subTab === 'debts' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
             border: 'none',
             color: '#fff',
-            padding: '8px',
+            padding: '8px 4px',
             borderRadius: '8px',
-            fontSize: '13px',
+            fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
-            transition: 'background 0.2s'
+            transition: 'background 0.2s',
+            whiteSpace: 'nowrap'
           }}
         >
-          📓 Sổ ghi nợ ({debts.length})
+          📓 Sổ nợ ({debts.length})
         </button>
       </div>
 
@@ -471,10 +596,6 @@ export const Wallets: React.FC = () => {
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💵 TIỀN MẶT LỚN</span>
           <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tienMatLonTotal)}</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💎 TÀI SẢN KHÁC</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(taiSanKhacTotal)}</span>
         </div>
       </div>
 
@@ -586,6 +707,157 @@ export const Wallets: React.FC = () => {
           ))
         )}
       </div>
+        </>
+      ) : subTab === 'assets' ? (
+        <>
+          {/* Total Asset Valuation Panel */}
+          <div style={{
+            background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            color: '#fff',
+            boxShadow: '0 4px 12px rgba(234,179,8,0.2)'
+          }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em', opacity: 0.9 }}>TỔNG GIÁ TRỊ TÀI SẢN KHÁC (ƯỚC TÍNH)</span>
+            <span style={{ fontSize: '20px', fontWeight: 800 }}>
+              {formatCurrency(assets.reduce((sum, a) => sum + (a.quantity * a.valuePerUnit), 0))}
+            </span>
+          </div>
+
+          <button 
+            type="button"
+            onClick={() => setShowAddAssetModal(true)}
+            style={{
+              background: 'var(--primary)',
+              border: 'none',
+              color: '#fff',
+              padding: '12px',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: 600,
+              width: '100%',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px var(--primary-glow)'
+            }}
+          >
+            <PlusCircle size={15} /> Thêm tài sản mới
+          </button>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '4px' }}>
+            {assets.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--card-border)' }}>
+                Hiện chưa có tài sản khác nào. Hãy thêm ngay!
+              </div>
+            ) : (
+              assets.map(a => (
+                <div 
+                  key={a.id}
+                  style={{
+                    background: `linear-gradient(135deg, ${a.color}dd 0%, ${a.color} 100%)`,
+                    borderRadius: '20px',
+                    padding: '20px',
+                    color: '#fff',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    height: '140px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  {/* Holographic Glow circles */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-20px',
+                    right: '-20px',
+                    width: '100px',
+                    height: '100px',
+                    background: '#fff',
+                    opacity: 0.1,
+                    borderRadius: '50%'
+                  }}></div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{a.name}</h3>
+                      <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>
+                        Số lượng: <strong>{a.quantity}</strong> {a.unit}
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => handleOpenEditAsset(a)}
+                        style={{
+                          background: 'rgba(255,255,255,0.15)',
+                          border: 'none',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#fff',
+                          transition: 'background 0.2s'
+                        }}
+                      >
+                        <Pencil size={14} />
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Bạn có chắc muốn xóa tài sản "${a.name}"?`)) {
+                            deleteAsset(a.id);
+                          }
+                        }}
+                        style={{
+                          background: 'rgba(255,255,255,0.15)',
+                          border: 'none',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#fff',
+                          transition: 'background 0.2s'
+                        }}
+                        className="card-delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '10px', opacity: 0.6 }}>Giá trị quy đổi:</span>
+                      <span style={{ fontSize: '20px', fontWeight: 800 }}>
+                        {formatCurrency(a.quantity * a.valuePerUnit)}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', opacity: 0.7 }}>
+                      Đơn giá: {formatCurrency(a.valuePerUnit)}/{a.unit}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </>
       ) : (
         <>
@@ -771,24 +1043,17 @@ export const Wallets: React.FC = () => {
                 <select 
                   value={newWalletType} 
                   onChange={e => {
-                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash' | 'asset';
+                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash';
                     setNewWalletType(val);
                     if (val === 'bank') {
                       setNewWalletSubType('MBBank');
                       setNewWalletName('MBBank');
-                      setNewWalletColor('#3b82f6');
                     } else if (val === 'e-wallet') {
                       setNewWalletSubType('Momo');
                       setNewWalletName('Momo');
-                      setNewWalletColor('#d946ef');
                     } else if (val === 'cash') {
                       setNewWalletSubType('Tiền mặt (Lớn)');
                       setNewWalletName('Tiền mặt (Lớn)');
-                      setNewWalletColor('#10b981');
-                    } else if (val === 'asset') {
-                      setNewWalletSubType('Vàng (Gold)');
-                      setNewWalletName('Vàng (Gold)');
-                      setNewWalletColor('#f59e0b');
                     }
                   }}
                   className="form-select"
@@ -796,14 +1061,13 @@ export const Wallets: React.FC = () => {
                   <option value="bank">🏦 Ngân hàng (Bank)</option>
                   <option value="e-wallet">📱 Ví điện tử (E-Wallet)</option>
                   <option value="cash">💵 Tiền mặt (Cash)</option>
-                  <option value="asset">💎 Tài sản khác (Asset)</option>
                 </select>
               </div>
 
               {/* Wallet Sub-Type */}
               <div className="form-group">
                 <label>
-                  {newWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : newWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : newWalletType === 'cash' ? 'CHI TIẾT TIỀM MẶT' : 'CHI TIẾT TÀI SẢN'}
+                  {newWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : newWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : 'CHI TIẾT TIỀM MẶT'}
                 </label>
                 {newWalletType === 'bank' && (
                   <select 
@@ -843,20 +1107,6 @@ export const Wallets: React.FC = () => {
                   >
                     <option value="Tiền mặt (Lớn)">💵 Tiền mặt (Lớn)</option>
                     <option value="Tiền lẻ (Nhỏ)">💵 Tiền lẻ (Nhỏ)</option>
-                  </select>
-                )}
-                {newWalletType === 'asset' && (
-                  <select 
-                    value={newWalletSubType} 
-                    onChange={e => {
-                      setNewWalletSubType(e.target.value);
-                      setNewWalletName(e.target.value);
-                    }}
-                    className="form-select"
-                  >
-                    <option value="Vàng (Gold)">🪙 Vàng (Gold)</option>
-                    <option value="Cổ phiếu / Crypto">📈 Cổ phiếu / Crypto</option>
-                    <option value="Tài sản khác">💎 Tài sản khác</option>
                   </select>
                 )}
               </div>
@@ -1086,24 +1336,17 @@ export const Wallets: React.FC = () => {
                 <select 
                   value={editWalletType} 
                   onChange={e => {
-                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash' | 'asset';
+                    const val = e.target.value as 'bank' | 'e-wallet' | 'cash';
                     setEditWalletType(val);
                     if (val === 'bank') {
                       setEditWalletSubType('MBBank');
                       setEditWalletName('MBBank');
-                      setEditWalletColor('#3b82f6');
                     } else if (val === 'e-wallet') {
                       setEditWalletSubType('Momo');
                       setEditWalletName('Momo');
-                      setEditWalletColor('#d946ef');
                     } else if (val === 'cash') {
                       setEditWalletSubType('Tiền mặt (Lớn)');
                       setEditWalletName('Tiền mặt (Lớn)');
-                      setEditWalletColor('#10b981');
-                    } else if (val === 'asset') {
-                      setEditWalletSubType('Vàng (Gold)');
-                      setEditWalletName('Vàng (Gold)');
-                      setEditWalletColor('#f59e0b');
                     }
                   }}
                   className="form-select"
@@ -1111,14 +1354,13 @@ export const Wallets: React.FC = () => {
                   <option value="bank">🏦 Ngân hàng (Bank)</option>
                   <option value="e-wallet">📱 Ví điện tử (E-Wallet)</option>
                   <option value="cash">💵 Tiền mặt (Cash)</option>
-                  <option value="asset">💎 Tài sản khác (Asset)</option>
                 </select>
               </div>
 
               {/* Wallet Sub-Type */}
               <div className="form-group">
                 <label>
-                  {editWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : editWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : editWalletType === 'cash' ? 'CHI TIẾT TIỀM MẶT' : 'CHI TIẾT TÀI SẢN'}
+                  {editWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : editWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : 'CHI TIẾT TIỀM MẶT'}
                 </label>
                 {editWalletType === 'bank' && (
                   <select 
@@ -1158,20 +1400,6 @@ export const Wallets: React.FC = () => {
                   >
                     <option value="Tiền mặt (Lớn)">💵 Tiền mặt (Lớn)</option>
                     <option value="Tiền lẻ (Nhỏ)">💵 Tiền lẻ (Nhỏ)</option>
-                  </select>
-                )}
-                {editWalletType === 'asset' && (
-                  <select 
-                    value={editWalletSubType} 
-                    onChange={e => {
-                      setEditWalletSubType(e.target.value);
-                      setEditWalletName(e.target.value);
-                    }}
-                    className="form-select"
-                  >
-                    <option value="Vàng (Gold)">🪙 Vàng (Gold)</option>
-                    <option value="Cổ phiếu / Crypto">📈 Cổ phiếu / Crypto</option>
-                    <option value="Tài sản khác">💎 Tài sản khác</option>
                   </select>
                 )}
               </div>
@@ -1376,6 +1604,265 @@ export const Wallets: React.FC = () => {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Đang thực hiện...' : 'Thu hồi'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Asset Modal Overlay */}
+      {showAddAssetModal && (
+        <div className="modal-overlay" onClick={() => setShowAddAssetModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Thêm tài sản mới</h2>
+              <button className="modal-close" onClick={() => setShowAddAssetModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddAssetSubmit}>
+              {/* Asset Name */}
+              <div className="form-group">
+                <label>TÊN TÀI SẢN</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Vàng 9999 SJC, Cổ phiếu FPT..."
+                  value={newAssetName}
+                  onChange={e => setNewAssetName(e.target.value)}
+                  className="form-input"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* Unit */}
+              <div className="form-group">
+                <label>ĐƠN VỊ TÍNH</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Chỉ, Lượng, Cổ phiếu..."
+                  value={newAssetUnit}
+                  onChange={e => setNewAssetUnit(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Quantity */}
+              <div className="form-group">
+                <label>SỐ LƯỢNG</label>
+                <input 
+                  type="text"
+                  placeholder="0.0"
+                  value={newAssetQuantity}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    setNewAssetQuantity(val);
+                  }}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Price per unit */}
+              <div className="form-group">
+                <label>ĐƠN GIÁ QUY ĐỔI (VND)</label>
+                <input 
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0đ"
+                  value={newAssetPricePerUnit}
+                  onChange={e => handleAmountChange(e.target.value, setNewAssetPricePerUnit)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Date */}
+              <div className="form-group">
+                <label>NGÀY SỞ HỮU</label>
+                <input 
+                  type="date"
+                  value={newAssetDate}
+                  onChange={e => setNewAssetDate(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="form-group">
+                <label>GHI CHÚ / MÔ TẢ</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Mua ở tiệm PNJ..."
+                  value={newAssetDesc}
+                  onChange={e => setNewAssetDesc(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              {/* Theme Color Picker */}
+              <div className="form-group">
+                <label>MÀU SẮC THẺ TÀI SẢN</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {COLORS.map(c => (
+                    <button 
+                      key={c}
+                      type="button"
+                      onClick={() => setNewAssetColor(c)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: c,
+                        border: newAssetColor === c ? '3px solid #fff' : 'none',
+                        boxShadow: newAssetColor === c ? '0 0 10px rgba(0,0,0,0.5)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.1s'
+                      }}
+                    ></button>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="button-primary"
+                style={{ width: '100%', padding: '14px', marginTop: '16px' }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Đang lưu...' : 'Thêm tài sản'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Asset Modal Overlay */}
+      {showEditAssetModal && editingAsset && (
+        <div className="modal-overlay" onClick={() => { setShowEditAssetModal(false); setEditingAsset(null); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Sửa tài sản</h2>
+              <button className="modal-close" onClick={() => { setShowEditAssetModal(false); setEditingAsset(null); }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditAssetSubmit}>
+              {/* Asset Name */}
+              <div className="form-group">
+                <label>TÊN TÀI SẢN</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Vàng 9999 SJC..."
+                  value={editAssetName}
+                  onChange={e => setEditAssetName(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Unit */}
+              <div className="form-group">
+                <label>ĐƠN VỊ TÍNH</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Chỉ, Lượng..."
+                  value={editAssetUnit}
+                  onChange={e => setEditAssetUnit(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Quantity */}
+              <div className="form-group">
+                <label>SỐ LƯỢNG</label>
+                <input 
+                  type="text"
+                  placeholder="0.0"
+                  value={editAssetQuantity}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    setEditAssetQuantity(val);
+                  }}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Price per unit */}
+              <div className="form-group">
+                <label>ĐƠN GIÁ QUY ĐỔI (VND)</label>
+                <input 
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0đ"
+                  value={editAssetPricePerUnit}
+                  onChange={e => handleAmountChange(e.target.value, setEditAssetPricePerUnit)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Date */}
+              <div className="form-group">
+                <label>NGÀY SỞ HỮU</label>
+                <input 
+                  type="date"
+                  value={editAssetDate}
+                  onChange={e => setEditAssetDate(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="form-group">
+                <label>GHI CHÚ / MÔ TẢ</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: Mua ở tiệm..."
+                  value={editAssetDesc}
+                  onChange={e => setEditAssetDesc(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              {/* Theme Color Picker */}
+              <div className="form-group">
+                <label>MÀU SẮC THẺ TÀI SẢN</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {COLORS.map(c => (
+                    <button 
+                      key={c}
+                      type="button"
+                      onClick={() => setEditAssetColor(c)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: c,
+                        border: editAssetColor === c ? '3px solid #fff' : 'none',
+                        boxShadow: editAssetColor === c ? '0 0 10px rgba(0,0,0,0.5)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.1s'
+                      }}
+                    ></button>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="button-primary"
+                style={{ width: '100%', padding: '14px', marginTop: '16px' }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật tài sản'}
               </button>
             </form>
           </div>

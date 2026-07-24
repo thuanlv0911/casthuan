@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../services/api';
-import type { Wallet, Transaction, Debt } from '../services/api';
+import type { Wallet, Transaction, Debt, Asset } from '../services/api';
 
 interface AppContextType {
   wallets: Wallet[];
   transactions: Transaction[];
   debts: Debt[];
+  assets: Asset[];
   isLoading: boolean;
   error: string | null;
   activeTab: string;
@@ -21,6 +22,9 @@ interface AppContextType {
   addDebt: (debt: Omit<Debt, 'id'>) => Promise<void>;
   repayDebt: (id: string, amount: number, walletId: string) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
+  addAsset: (asset: Omit<Asset, 'id'>) => Promise<void>;
+  updateAsset: (id: string, asset: Partial<Asset>) => Promise<void>;
+  deleteAsset: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,6 +33,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -37,14 +42,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoading(true);
     setError(null);
     try {
-      const [wData, tData, dData] = await Promise.all([
+      const [wData, tData, dData, aData] = await Promise.all([
         api.getWallets(),
         api.getTransactions(),
-        api.getDebts()
+        api.getDebts(),
+        api.getAssets()
       ]);
       setWallets(wData);
       setTransactions(tData);
       setDebts(dData);
+      setAssets(aData);
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Có lỗi xảy ra khi đồng bộ dữ liệu.');
@@ -418,12 +425,52 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const addAsset = async (assetData: Omit<Asset, 'id'>) => {
+    setIsLoading(true);
+    try {
+      const newAsset = await api.createAsset(assetData);
+      setAssets(prev => [newAsset, ...prev]);
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể thêm tài sản mới.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateAsset = async (id: string, assetData: Partial<Asset>) => {
+    setIsLoading(true);
+    try {
+      const updatedAsset = await api.updateAsset(id, assetData);
+      setAssets(prev => prev.map(a => a.id === id ? updatedAsset : a));
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể cập nhật tài sản.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteAsset = async (id: string) => {
+    setIsLoading(true);
+    try {
+      await api.deleteAsset(id);
+      setAssets(prev => prev.filter(a => a.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể xóa tài sản.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
         wallets,
         transactions,
         debts,
+        assets,
         isLoading,
         error,
         activeTab,
@@ -438,6 +485,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addDebt,
         repayDebt,
         deleteDebt,
+        addAsset,
+        updateAsset,
+        deleteAsset,
       }}
     >
       {children}
