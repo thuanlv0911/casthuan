@@ -3,6 +3,7 @@ import { Trash2, Filter, X, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate } from '../utils/format';
 import type { Transaction } from '../services/api';
+import { CategoryIcon } from '../components/CategoryIcon';
 
 interface TransactionsProps {
   onOpenEdit: (tx: Transaction) => void;
@@ -206,11 +207,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '12px',
                             flexShrink: 0
                           }}>
-                            {t.category.slice(0, 2)}
+                            <CategoryIcon category={t.category} type={t.type} size={16} />
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>

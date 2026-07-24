@@ -3,6 +3,7 @@ import { ArrowUpRight, ArrowDownRight, CreditCard, ChevronRight, PlusCircle, Pen
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate } from '../utils/format';
 import type { Transaction } from '../services/api';
+import { CategoryIcon } from '../components/CategoryIcon';
 
 interface DashboardProps {
   onOpenAddTransaction: () => void;
@@ -24,7 +25,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
 
   // Compute stats
   const stats = useMemo(() => {
-    let totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+    // Only count TPBank and Tiền lẻ (Nhỏ) in Dashboard Total Balance
+    let totalBalance = wallets
+      .filter(w => 
+        w.name.toLowerCase().includes('tpbank') || 
+        w.name.toLowerCase().includes('lẻ') || 
+        w.name.toLowerCase().includes('nhỏ')
+      )
+      .reduce((sum, w) => sum + w.balance, 0);
     let monthlyIncome = 0;
     let monthlyExpense = 0;
 
@@ -79,14 +87,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
 
   return (
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>Xin chào! 👋</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>Xin chào!</span>
           <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Ví của Thuận</h2>
         </div>
-        <button 
+        <button
           onClick={onOpenAddTransaction}
           style={{
             background: 'rgba(99, 102, 241, 0.15)',
@@ -165,8 +173,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Ví và Ngân hàng ({wallets.length})</h3>
-          <button 
-            onClick={() => setActiveTab('wallets')} 
+          <button
+            onClick={() => setActiveTab('wallets')}
             style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
             Tất cả <ChevronRight size={16} />
@@ -175,7 +183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
 
         <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="no-scrollbar">
           {wallets.map(w => (
-            <div 
+            <div
               key={w.id}
               style={{
                 flex: '0 0 160px',
@@ -205,7 +213,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
       {categoryBreakdown.length > 0 && (
         <div style={{ background: 'var(--card-bg)', borderRadius: '20px', padding: '16px', border: '1px solid var(--card-border)' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>Thống kê chi tiêu {currentMonthYear.label}</h3>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {categoryBreakdown.slice(0, 4).map(item => {
               const percentage = stats.monthlyExpense > 0 ? (item.value / stats.monthlyExpense) * 100 : 0;
@@ -235,8 +243,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Giao dịch gần đây</h3>
-          <button 
-            onClick={() => setActiveTab('transactions')} 
+          <button
+            onClick={() => setActiveTab('transactions')}
             style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
             Lịch sử <ChevronRight size={16} />
@@ -256,7 +264,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
               const destWallet = t.destinationWalletId ? wallets.find(w => w.id === t.destinationWalletId) : null;
 
               return (
-                <div 
+                <div
                   key={t.id}
                   style={{
                     display: 'flex',
@@ -279,10 +287,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '14px'
                     }}>
-                      {t.category.slice(0, 2)}
+                      <CategoryIcon category={t.category} type={t.type} size={20} />
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -302,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
                     }}>
                       {isIncome ? '+' : isExpense ? '-' : ''}{formatCurrency(t.amount)}
                     </span>
-                    <button 
+                    <button
                       onClick={() => onOpenEdit(t)}
                       style={{
                         background: 'none',
@@ -325,7 +331,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
           )}
         </div>
       </div>
-      
+
     </div>
   );
 };

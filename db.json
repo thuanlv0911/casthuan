@@ -2,28 +2,63 @@
   "wallets": [
     {
       "id": "w1",
-      "name": "Tiền mặt (Cash)",
+      "name": "Tiền lẻ (Nhỏ)",
       "type": "cash",
-      "balance": -25000,
+      "balance": 100000,
       "color": "#10b981"
     },
     {
       "id": "w2",
       "name": "TPBank",
       "type": "bank",
-      "balance": 46000,
+      "balance": 300000,
       "color": "#a855f7"
     },
     {
       "id": "b90f",
       "name": "MBBankSDT",
       "type": "bank",
-      "balance": 0,
+      "balance": 16000,
       "color": "#3b82f6"
     },
     {
       "id": "865d",
-      "name": "MBBank09",
+      "name": "MBBank36",
+      "type": "bank",
+      "balance": 2400000,
+      "color": "#3b82f6"
+    },
+    {
+      "id": "a403",
+      "name": "Tiền mặt (Lớn)",
+      "type": "cash",
+      "balance": 600000,
+      "color": "#10b981"
+    },
+    {
+      "id": "c090",
+      "name": "Techcombank",
+      "type": "bank",
+      "balance": 0,
+      "color": "#ec4899"
+    },
+    {
+      "id": "e128",
+      "name": "Momo",
+      "type": "e-wallet",
+      "balance": 0,
+      "color": "#d946ef"
+    },
+    {
+      "id": "39ef",
+      "name": "VNPay",
+      "type": "e-wallet",
+      "balance": 61000,
+      "color": "#ef4444"
+    },
+    {
+      "id": "f82a",
+      "name": "TPBankUni",
       "type": "bank",
       "balance": 0,
       "color": "#6366f1"
@@ -65,6 +100,89 @@
       "walletId": "w2",
       "date": "2026-07-24",
       "description": "Mua móc khóa"
+    },
+    {
+      "id": "0fe2",
+      "type": "income",
+      "amount": 100000,
+      "category": "Được tặng",
+      "walletId": "w1",
+      "date": "2026-07-24",
+      "description": "Nạp tiền vào ví"
+    },
+    {
+      "id": "bfd0",
+      "type": "income",
+      "amount": 400000,
+      "category": "Được tặng",
+      "walletId": "w2",
+      "date": "2026-07-24",
+      "description": "Nạp tiền vào ví"
+    },
+    {
+      "id": "1a94",
+      "type": "expense",
+      "amount": 30000,
+      "category": "Ăn uống",
+      "walletId": "w2",
+      "date": "2026-07-24",
+      "description": "Trứng"
+    },
+    {
+      "id": "c281",
+      "type": "expense",
+      "amount": 30000,
+      "category": "Ăn uống",
+      "walletId": "w2",
+      "date": "2026-07-24",
+      "description": "Ớt, hành, mướp đắng, đậu phụ"
+    },
+    {
+      "id": "006e",
+      "type": "expense",
+      "amount": 20000,
+      "category": "Khác",
+      "walletId": "w2",
+      "date": "2026-07-24",
+      "description": "đào lửa"
+    },
+    {
+      "id": "ae82",
+      "type": "income",
+      "amount": 2400000,
+      "category": "Được tặng",
+      "walletId": "865d",
+      "date": "2026-07-24",
+      "description": "Nạp tiền vào ví"
+    },
+    {
+      "id": "137f",
+      "type": "income",
+      "amount": 11000,
+      "category": "Được tặng",
+      "walletId": "39ef",
+      "date": "2026-07-24",
+      "description": "Nạp tiền vào ví"
+    },
+    {
+      "type": "transfer",
+      "amount": 50000,
+      "category": "Ăn uống",
+      "walletId": "w2",
+      "destinationWalletId": "39ef",
+      "date": "2026-07-24",
+      "description": "Chuyển khoản nội bộ",
+      "id": "d16b"
+    },
+    {
+      "id": "3821",
+      "type": "transfer",
+      "amount": 16000,
+      "category": "Chuyển khoản",
+      "walletId": "w2",
+      "destinationWalletId": "b90f",
+      "date": "2026-07-24",
+      "description": "MBBank"
     }
   ]
 }

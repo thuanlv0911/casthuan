@@ -15,6 +15,7 @@ interface AppContextType {
   updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addWallet: (wallet: Omit<Wallet, 'id'>) => Promise<void>;
+  updateWallet: (id: string, wallet: Partial<Wallet>) => Promise<void>;
   deleteWallet: (id: string) => Promise<void>;
 }
 
@@ -54,6 +55,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       // 1. Create transaction on server
       const newTx = await api.createTransaction(txData);
+      // Add delay for json-server file system write
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 2. Calculate updated wallet balances
       const updatedWallets = [...wallets];
@@ -83,6 +86,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           await api.updateWallet(srcW.id, { balance: newSrcBalance });
           updatedWallets[srcIndex] = { ...srcW, balance: newSrcBalance };
         }
+        // Add delay for json-server file system write
+        await new Promise(resolve => setTimeout(resolve, 100));
         // Destination wallet (To)
         const destIndex = updatedWallets.findIndex(w => w.id === txData.destinationWalletId);
         if (destIndex !== -1) {
@@ -115,6 +120,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // 1. Delete on server
       await api.deleteTransaction(id);
+      // Add delay for json-server file system write
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 2. Revert the wallet balance
       const updatedWallets = [...wallets];
@@ -144,6 +151,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           await api.updateWallet(srcW.id, { balance: revertedSrcBalance });
           updatedWallets[srcIndex] = { ...srcW, balance: revertedSrcBalance };
         }
+        // Add delay for json-server file system write
+        await new Promise(resolve => setTimeout(resolve, 100));
         // Destination wallet (Subtract the transferred amount)
         const destIndex = updatedWallets.findIndex(w => w.id === txToDelete.destinationWalletId);
         if (destIndex !== -1) {
@@ -220,6 +229,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       for (const wId of affectedWalletIds) {
         const w = tempWallets.find(wallet => wallet.id === wId);
         if (w) {
+          // Add delay to prevent concurrent writes to file-based db.json
+          await new Promise(resolve => setTimeout(resolve, 100));
           await api.updateWallet(w.id, { balance: w.balance });
         }
       }
@@ -252,6 +263,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const updateWallet = async (id: string, walletData: Partial<Wallet>) => {
+    setIsLoading(true);
+    try {
+      const updatedWallet = await api.updateWallet(id, walletData);
+      setWallets(prev => prev.map(w => w.id === id ? updatedWallet : w));
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể cập nhật ví.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const deleteWallet = async (id: string) => {
     setIsLoading(true);
     try {
@@ -279,6 +303,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateTransaction,
         deleteTransaction,
         addWallet,
+        updateWallet,
         deleteWallet,
       }}
     >
