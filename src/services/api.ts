@@ -12,6 +12,7 @@ export interface Asset {
   unit: string;
   quantity: number;
   valuePerUnit: number;
+  purchasePricePerUnit: number;
   date: string;
   description: string;
   color: string;
@@ -181,5 +182,13 @@ export const api = {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete asset');
+  },
+
+  async updateGoldPrices(): Promise<{ success: boolean; assets: Asset[]; updatedCount: number; details: string[] }> {
+    const res = await fetch(`${API_BASE}/api/update-gold-prices`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to auto-update gold prices from website');
+    return res.json();
   },
 };

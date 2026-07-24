@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/format';
 import type { Wallet, Asset } from '../services/api';
 
 export const Wallets: React.FC = () => {
-  const { 
-    wallets, addWallet, updateWallet, deleteWallet, addTransaction, 
+  const {
+    wallets, addWallet, updateWallet, deleteWallet, addTransaction,
     debts, addDebt, repayDebt, deleteDebt,
-    assets, addAsset, updateAsset, deleteAsset 
+    assets, addAsset, updateAsset, deleteAsset, updateGoldPrices
   } = useApp();
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
-  
+
   // Calculate sub-totals for display
   const mbbankTotal = wallets.filter(w => w.name.toLowerCase().includes('mbbank')).reduce((sum, w) => sum + w.balance, 0);
   const techcomTotal = wallets.filter(w => w.name.toLowerCase().includes('techcombank')).reduce((sum, w) => sum + w.balance, 0);
@@ -46,6 +46,7 @@ export const Wallets: React.FC = () => {
   const [newAssetUnit, setNewAssetUnit] = useState<string>('Chỉ');
   const [newAssetQuantity, setNewAssetQuantity] = useState<string>('');
   const [newAssetPricePerUnit, setNewAssetPricePerUnit] = useState<string>('');
+  const [newAssetPurchasePricePerUnit, setNewAssetPurchasePricePerUnit] = useState<string>('');
   const [newAssetDate, setNewAssetDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [newAssetDesc, setNewAssetDesc] = useState<string>('');
   const [newAssetColor, setNewAssetColor] = useState<string>('#f59e0b');
@@ -57,9 +58,11 @@ export const Wallets: React.FC = () => {
   const [editAssetUnit, setEditAssetUnit] = useState<string>('');
   const [editAssetQuantity, setEditAssetQuantity] = useState<string>('');
   const [editAssetPricePerUnit, setEditAssetPricePerUnit] = useState<string>('');
+  const [editAssetPurchasePricePerUnit, setEditAssetPurchasePricePerUnit] = useState<string>('');
   const [editAssetDate, setEditAssetDate] = useState<string>('');
   const [editAssetDesc, setEditAssetDesc] = useState<string>('');
   const [editAssetColor, setEditAssetColor] = useState<string>('#f59e0b');
+  const [isUpdatingGold, setIsUpdatingGold] = useState<boolean>(false);
 
   // Top-Up Form State
   const [showTopUpModal, setShowTopUpModal] = useState<boolean>(false);
@@ -331,11 +334,29 @@ export const Wallets: React.FC = () => {
     }
   };
 
+  const handleAutoUpdateGoldPrices = async () => {
+    setIsUpdatingGold(true);
+    try {
+      const result = await updateGoldPrices();
+      if (result.updatedCount > 0) {
+        alert(`Đã cập nhật thành công ${result.updatedCount} tài sản:\n` + result.details.join('\n'));
+      } else {
+        alert('Không tìm thấy tài sản nào phù hợp để cập nhật (Ví dụ: tên tài sản cần chứa chữ "SJC", "Nhẫn tròn", "9999", "24K", "Bạc"...).');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi cập nhật giá vàng từ website.');
+    } finally {
+      setIsUpdatingGold(false);
+    }
+  };
+
   const handleAddAssetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAssetName.trim() || !newAssetUnit.trim()) return;
     const parsedQty = parseFloat(newAssetQuantity.replace(/[^0-9.]/g, '')) || 0;
     const parsedPrice = parseFloat(newAssetPricePerUnit.replace(/[^0-9]/g, '')) || 0;
+    const parsedPurchasePrice = parseFloat(newAssetPurchasePricePerUnit.replace(/[^0-9]/g, '')) || parsedPrice;
+
     if (parsedQty <= 0 || parsedPrice <= 0) {
       alert('Vui lòng nhập số lượng và giá trị hợp lệ.');
       return;
@@ -348,6 +369,7 @@ export const Wallets: React.FC = () => {
         unit: newAssetUnit.trim(),
         quantity: parsedQty,
         valuePerUnit: parsedPrice,
+        purchasePricePerUnit: parsedPurchasePrice,
         date: newAssetDate,
         description: newAssetDesc.trim(),
         color: newAssetColor
@@ -358,6 +380,7 @@ export const Wallets: React.FC = () => {
       setNewAssetUnit('Chỉ');
       setNewAssetQuantity('');
       setNewAssetPricePerUnit('');
+      setNewAssetPurchasePricePerUnit('');
       setNewAssetDesc('');
       setShowAddAssetModal(false);
     } catch (err: any) {
@@ -373,6 +396,7 @@ export const Wallets: React.FC = () => {
     setEditAssetUnit(asset.unit);
     setEditAssetQuantity(asset.quantity.toString());
     setEditAssetPricePerUnit(new Intl.NumberFormat('vi-VN').format(asset.valuePerUnit));
+    setEditAssetPurchasePricePerUnit(new Intl.NumberFormat('vi-VN').format(asset.purchasePricePerUnit || asset.valuePerUnit));
     setEditAssetDate(asset.date);
     setEditAssetDesc(asset.description);
     setEditAssetColor(asset.color);
@@ -385,6 +409,8 @@ export const Wallets: React.FC = () => {
     if (!editAssetName.trim() || !editAssetUnit.trim()) return;
     const parsedQty = parseFloat(editAssetQuantity.replace(/[^0-9.]/g, '')) || 0;
     const parsedPrice = parseFloat(editAssetPricePerUnit.replace(/[^0-9]/g, '')) || 0;
+    const parsedPurchasePrice = parseFloat(editAssetPurchasePricePerUnit.replace(/[^0-9]/g, '')) || parsedPrice;
+
     if (parsedQty <= 0 || parsedPrice <= 0) {
       alert('Vui lòng nhập số lượng và giá trị hợp lệ.');
       return;
@@ -397,6 +423,7 @@ export const Wallets: React.FC = () => {
         unit: editAssetUnit.trim(),
         quantity: parsedQty,
         valuePerUnit: parsedPrice,
+        purchasePricePerUnit: parsedPurchasePrice,
         date: editAssetDate,
         description: editAssetDesc.trim(),
         color: editAssetColor
@@ -425,7 +452,7 @@ export const Wallets: React.FC = () => {
 
   return (
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -433,7 +460,7 @@ export const Wallets: React.FC = () => {
           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Quản lý nguồn tài chính của bạn</span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
+          <button
             onClick={() => {
               if (wallets.length >= 2) {
                 setTransferFrom(wallets[0].id);
@@ -459,7 +486,7 @@ export const Wallets: React.FC = () => {
           >
             <ArrowRightLeft size={15} /> Chuyển ví
           </button>
-          <button 
+          <button
             onClick={() => setShowAddModal(true)}
             style={{
               background: 'var(--primary)',
@@ -553,160 +580,160 @@ export const Wallets: React.FC = () => {
       {subTab === 'wallets' ? (
         <>
           {/* Total Balance Panel */}
-      <div style={{
-        background: 'var(--card-bg)',
-        border: '1px solid var(--card-border)',
-        borderRadius: '16px',
-        padding: '16px 20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-      }}>
-        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>TỔNG TIỀN TẤT CẢ VÍ</span>
-        <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--income-color)' }}>{formatCurrency(totalBalance)}</span>
-      </div>
-
-      {/* Sub-totals Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px',
-      }}>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💵 TIỀN LẺ (NHỎ)</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tienLeNhoTotal)}</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>🏦 TPBANK</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tpbankTotal)}</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>🏦 MBBANK</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(mbbankTotal)}</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>🏦 TECHCOMBANK</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(techcomTotal)}</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>📱 MOMO & VNPAY</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(momoVnpayTotal)}</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💵 TIỀN MẶT LỚN</span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tienMatLonTotal)}</span>
-        </div>
-      </div>
-
-      {/* Cards List Layout */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {wallets.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--card-border)' }}>
-            Chưa có tài khoản ví nào được tạo. Hãy thêm ví mới ngay!
+          <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>TỔNG TIỀN TẤT CẢ VÍ</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--income-color)' }}>{formatCurrency(totalBalance)}</span>
           </div>
-        ) : (
-          wallets.map(w => (
-            <div 
-              key={w.id}
-              onClick={() => handleOpenTopUp(w)}
-              style={{
-                background: `linear-gradient(135deg, ${w.color}dd 0%, ${w.color} 100%)`,
-                borderRadius: '20px',
-                padding: '20px',
-                color: '#fff',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                height: '140px',
-                position: 'relative',
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.1)',
-                cursor: 'pointer'
-              }}
-            >
-              {/* Card Holographic Glow circles */}
-              <div style={{
-                position: 'absolute',
-                top: '-20px',
-                right: '-20px',
-                width: '100px',
-                height: '100px',
-                background: '#fff',
-                opacity: 0.1,
-                borderRadius: '50%'
-              }}></div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{w.name}</h3>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8 }}>
-                    {w.type === 'bank' ? '🏦 Ngân hàng' : w.type === 'e-wallet' ? '📱 Ví điện tử' : '💵 Tiền mặt'}
-                  </span>
-                </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditWallet(w);
-                    }}
-                    style={{
-                      background: 'rgba(255,255,255,0.15)',
-                      border: 'none',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      color: '#fff',
-                      transition: 'background 0.2s'
-                    }}
-                    className="card-edit"
-                  >
-                    <Pencil size={14} />
-                  </button>
-
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteWallet(w.id, w.name);
-                    }}
-                    style={{
-                      background: 'rgba(255,255,255,0.15)',
-                      border: 'none',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      color: '#fff',
-                      transition: 'background 0.2s'
-                    }}
-                    className="card-delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
-                <span style={{ fontSize: '24px', fontWeight: 800 }}>
-                  {formatCurrency(w.balance)}
-                </span>
-                <span style={{ fontSize: '12px', opacity: 0.6, fontFamily: 'var(--font-mono)' }}>
-                  **** **** {w.id.slice(-4)}
-                </span>
-              </div>
+          {/* Sub-totals Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '10px',
+          }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💵 TIỀN LẺ (NHỎ)</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tienLeNhoTotal)}</span>
             </div>
-          ))
-        )}
-      </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>🏦 TPBANK</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tpbankTotal)}</span>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>🏦 MBBANK</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(mbbankTotal)}</span>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>🏦 TECHCOMBANK</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(techcomTotal)}</span>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>📱 MOMO & VNPAY</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(momoVnpayTotal)}</span>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 600 }}>💵 TIỀN MẶT LỚN</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(tienMatLonTotal)}</span>
+            </div>
+          </div>
+
+          {/* Cards List Layout */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {wallets.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--card-border)' }}>
+                Chưa có tài khoản ví nào được tạo. Hãy thêm ví mới ngay!
+              </div>
+            ) : (
+              wallets.map(w => (
+                <div
+                  key={w.id}
+                  onClick={() => handleOpenTopUp(w)}
+                  style={{
+                    background: `linear-gradient(135deg, ${w.color}dd 0%, ${w.color} 100%)`,
+                    borderRadius: '20px',
+                    padding: '20px',
+                    color: '#fff',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    height: '140px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {/* Card Holographic Glow circles */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-20px',
+                    right: '-20px',
+                    width: '100px',
+                    height: '100px',
+                    background: '#fff',
+                    opacity: 0.1,
+                    borderRadius: '50%'
+                  }}></div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{w.name}</h3>
+                      <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8 }}>
+                        {w.type === 'bank' ? '🏦 Ngân hàng' : w.type === 'e-wallet' ? '📱 Ví điện tử' : '💵 Tiền mặt'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditWallet(w);
+                        }}
+                        style={{
+                          background: 'rgba(255,255,255,0.15)',
+                          border: 'none',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#fff',
+                          transition: 'background 0.2s'
+                        }}
+                        className="card-edit"
+                      >
+                        <Pencil size={14} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteWallet(w.id, w.name);
+                        }}
+                        style={{
+                          background: 'rgba(255,255,255,0.15)',
+                          border: 'none',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#fff',
+                          transition: 'background 0.2s'
+                        }}
+                        className="card-delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
+                    <span style={{ fontSize: '24px', fontWeight: 800 }}>
+                      {formatCurrency(w.balance)}
+                    </span>
+                    <span style={{ fontSize: '12px', opacity: 0.6, fontFamily: 'var(--font-mono)' }}>
+                      **** **** {w.id.slice(-4)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </>
       ) : subTab === 'assets' ? (
         <>
@@ -717,39 +744,135 @@ export const Wallets: React.FC = () => {
             borderRadius: '16px',
             padding: '16px 20px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '10px',
             color: '#fff',
             boxShadow: '0 4px 12px rgba(234,179,8,0.2)'
           }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em', opacity: 0.9 }}>TỔNG GIÁ TRỊ TÀI SẢN KHÁC (ƯỚC TÍNH)</span>
-            <span style={{ fontSize: '20px', fontWeight: 800 }}>
-              {formatCurrency(assets.reduce((sum, a) => sum + (a.quantity * a.valuePerUnit), 0))}
-            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em', opacity: 0.95 }}>TỔNG GIÁ TRỊ TÀI SẢN</span>
+              <span style={{ fontSize: '20px', fontWeight: 800 }}>
+                {formatCurrency(assets.reduce((sum, a) => sum + (a.quantity * a.valuePerUnit), 0))}
+              </span>
+            </div>
+
+            {/* Total P&L row */}
+            {(() => {
+              const totalPurchase = assets.reduce((sum, a) => sum + (a.quantity * (a.purchasePricePerUnit || a.valuePerUnit)), 0);
+              const totalCurrent = assets.reduce((sum, a) => sum + (a.quantity * a.valuePerUnit), 0);
+              const totalProfit = totalCurrent - totalPurchase;
+              const totalPercent = totalPurchase > 0 ? (totalProfit / totalPurchase) * 100 : 0;
+
+              if (totalProfit > 0) {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '11px',
+                    background: 'rgba(6, 78, 59, 0.55)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    marginTop: '2px'
+                  }}>
+                    <span style={{ opacity: 0.95, fontWeight: 600 }}>TỔNG LÃI TÍCH LŨY:</span>
+                    <strong style={{ color: '#34d399', fontSize: '12px', fontWeight: 800 }}>
+                      +{formatCurrency(totalProfit)} (+{totalPercent.toFixed(1)}%) ▲
+                    </strong>
+                  </div>
+                );
+              } else if (totalProfit < 0) {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '11px',
+                    background: 'rgba(127, 29, 29, 0.55)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    marginTop: '2px'
+                  }}>
+                    <span style={{ opacity: 0.95, fontWeight: 600 }}>TỔNG LỖ TẠM TÍNH:</span>
+                    <strong style={{ color: '#f87171', fontSize: '12px', fontWeight: 800 }}>
+                      {formatCurrency(totalProfit)} ({totalPercent.toFixed(1)}%) ▼
+                    </strong>
+                  </div>
+                );
+              } else {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '11px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    marginTop: '2px'
+                  }}>
+                    <span style={{ opacity: 0.95, fontWeight: 600 }}>TỔNG CHÊNH LỆCH:</span>
+                    <strong style={{ color: 'rgba(255,255,255,0.95)', fontSize: '12px', fontWeight: 800 }}>
+                      Hòa vốn (0%)
+                    </strong>
+                  </div>
+                );
+              }
+            })()}
           </div>
 
-          <button 
-            type="button"
-            onClick={() => setShowAddAssetModal(true)}
-            style={{
-              background: 'var(--primary)',
-              border: 'none',
-              color: '#fff',
-              padding: '12px',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: 600,
-              width: '100%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 12px var(--primary-glow)'
-            }}
-          >
-            <PlusCircle size={15} /> Thêm tài sản mới
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => setShowAddAssetModal(true)}
+              style={{
+                background: 'var(--primary)',
+                border: 'none',
+                color: '#fff',
+                padding: '12px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                flex: 1,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px var(--primary-glow)'
+              }}
+            >
+              <PlusCircle size={15} /> Thêm tài sản mới
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAutoUpdateGoldPrices}
+              disabled={isUpdatingGold}
+              style={{
+                background: 'rgba(234, 179, 8, 0.1)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+                color: '#eab308',
+                padding: '12px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                flex: 1,
+                cursor: isUpdatingGold ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                opacity: isUpdatingGold ? 0.7 : 1
+              }}
+            >
+              <RefreshCw size={15} className={isUpdatingGold ? 'animate-spin' : ''} />
+              {isUpdatingGold ? 'Đang cập nhật...' : 'Cập nhật giá vàng'}
+            </button>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '4px' }}>
             {assets.length === 0 ? (
@@ -758,7 +881,7 @@ export const Wallets: React.FC = () => {
               </div>
             ) : (
               assets.map(a => (
-                <div 
+                <div
                   key={a.id}
                   style={{
                     background: `linear-gradient(135deg, ${a.color}dd 0%, ${a.color} 100%)`,
@@ -769,7 +892,7 @@ export const Wallets: React.FC = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    height: '140px',
+                    minHeight: '160px',
                     position: 'relative',
                     overflow: 'hidden',
                     border: '1px solid rgba(255,255,255,0.1)'
@@ -786,17 +909,17 @@ export const Wallets: React.FC = () => {
                     opacity: 0.1,
                     borderRadius: '50%'
                   }}></div>
-                  
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
                     <div>
                       <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{a.name}</h3>
-                      <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>
                         Số lượng: <strong>{a.quantity}</strong> {a.unit}
                       </span>
                     </div>
-                    
+
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleOpenEditAsset(a)}
                         style={{
@@ -816,7 +939,7 @@ export const Wallets: React.FC = () => {
                         <Pencil size={14} />
                       </button>
 
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           if (window.confirm(`Bạn có chắc muốn xóa tài sản "${a.name}"?`)) {
@@ -843,16 +966,84 @@ export const Wallets: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
+                  {/* Price Comparison Row */}
+                  <div style={{ display: 'flex', gap: '16px', margin: '12px 0', fontSize: '11px', opacity: 0.95, zIndex: 1 }}>
+                    <div>
+                      <span style={{ opacity: 0.7 }}>Đơn giá mua:</span> <br />
+                      <strong style={{ fontSize: '12px' }}>{formatCurrency(a.purchasePricePerUnit || a.valuePerUnit)}</strong>
+                    </div>
+                    <div style={{ borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '16px' }}>
+                      <span style={{ opacity: 0.7 }}>Đơn giá hiện tại:</span> <br />
+                      <strong style={{ fontSize: '12px' }}>{formatCurrency(a.valuePerUnit)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1, marginTop: '4px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '10px', opacity: 0.6 }}>Giá trị quy đổi:</span>
-                      <span style={{ fontSize: '20px', fontWeight: 800 }}>
+                      <span style={{ fontSize: '10px', opacity: 0.7 }}>Giá trị quy đổi hiện tại:</span>
+                      <span style={{ fontSize: '18px', fontWeight: 800 }}>
                         {formatCurrency(a.quantity * a.valuePerUnit)}
                       </span>
                     </div>
-                    <span style={{ fontSize: '11px', opacity: 0.7 }}>
-                      Đơn giá: {formatCurrency(a.valuePerUnit)}/{a.unit}
-                    </span>
+
+                    {/* P&L Badge */}
+                    {(() => {
+                      const pPrice = a.purchasePricePerUnit || a.valuePerUnit;
+                      const profit = (a.valuePerUnit - pPrice) * a.quantity;
+                      const percent = pPrice > 0 ? ((a.valuePerUnit - pPrice) / pPrice) * 100 : 0;
+
+                      if (profit > 0) {
+                        return (
+                          <div style={{
+                            background: '#10b981',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+                          }}>
+                            Lãi: +{formatCurrency(profit)} (+{percent.toFixed(1)}%) ▲
+                          </div>
+                        );
+                      } else if (profit < 0) {
+                        return (
+                          <div style={{
+                            background: '#ef4444',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            boxShadow: '0 2px 6px rgba(239,68,68,0.3)'
+                          }}>
+                            Lỗ: {formatCurrency(profit)} ({percent.toFixed(1)}%) ▼
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.25)',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            Hòa vốn (0%)
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
               ))
@@ -876,7 +1067,7 @@ export const Wallets: React.FC = () => {
             <span style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b' }}>{formatCurrency(debts.reduce((sum, d) => sum + d.amount, 0))}</span>
           </div>
 
-          <button 
+          <button
             type="button"
             onClick={() => setShowAddDebtModal(true)}
             style={{
@@ -908,7 +1099,7 @@ export const Wallets: React.FC = () => {
               debts.map(d => {
                 const w = wallets.find(wallet => wallet.id === d.walletId);
                 return (
-                  <div 
+                  <div
                     key={d.id}
                     style={{
                       background: 'var(--card-bg)',
@@ -1022,11 +1213,11 @@ export const Wallets: React.FC = () => {
             </div>
 
             <form onSubmit={handleAddWallet}>
-              
+
               {/* Wallet Name */}
               <div className="form-group">
                 <label>TÊN VÍ / NGÂN HÀNG</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Vietcombank, Momo, Tiền mặt..."
                   value={newWalletName}
@@ -1040,8 +1231,8 @@ export const Wallets: React.FC = () => {
               {/* Wallet Type */}
               <div className="form-group">
                 <label>LOẠI HÌNH TÀI KHOẢN</label>
-                <select 
-                  value={newWalletType} 
+                <select
+                  value={newWalletType}
                   onChange={e => {
                     const val = e.target.value as 'bank' | 'e-wallet' | 'cash';
                     setNewWalletType(val);
@@ -1070,8 +1261,8 @@ export const Wallets: React.FC = () => {
                   {newWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : newWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : 'CHI TIẾT TIỀM MẶT'}
                 </label>
                 {newWalletType === 'bank' && (
-                  <select 
-                    value={newWalletSubType} 
+                  <select
+                    value={newWalletSubType}
                     onChange={e => {
                       setNewWalletSubType(e.target.value);
                       setNewWalletName(e.target.value);
@@ -1084,8 +1275,8 @@ export const Wallets: React.FC = () => {
                   </select>
                 )}
                 {newWalletType === 'e-wallet' && (
-                  <select 
-                    value={newWalletSubType} 
+                  <select
+                    value={newWalletSubType}
                     onChange={e => {
                       setNewWalletSubType(e.target.value);
                       setNewWalletName(e.target.value);
@@ -1097,8 +1288,8 @@ export const Wallets: React.FC = () => {
                   </select>
                 )}
                 {newWalletType === 'cash' && (
-                  <select 
-                    value={newWalletSubType} 
+                  <select
+                    value={newWalletSubType}
                     onChange={e => {
                       setNewWalletSubType(e.target.value);
                       setNewWalletName(e.target.value);
@@ -1114,7 +1305,7 @@ export const Wallets: React.FC = () => {
               {/* Initial Balance */}
               <div className="form-group">
                 <label>SỐ DƯ BAN ĐẦU (VND)</label>
-                <input 
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1129,7 +1320,7 @@ export const Wallets: React.FC = () => {
                 <label>MÀU SẮC CHỦ ĐẠO THẺ</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                   {COLORS.map(c => (
-                    <button 
+                    <button
                       key={c}
                       type="button"
                       onClick={() => setNewWalletColor(c)}
@@ -1148,8 +1339,8 @@ export const Wallets: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1173,13 +1364,13 @@ export const Wallets: React.FC = () => {
             </div>
 
             <form onSubmit={handleTransfer}>
-              
+
               {/* Select Source and Target */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label>TỪ VÍ (NGUỒN)</label>
-                  <select 
-                    value={transferFrom} 
+                  <select
+                    value={transferFrom}
                     onChange={e => setTransferFrom(e.target.value)}
                     className="form-select"
                   >
@@ -1190,8 +1381,8 @@ export const Wallets: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>ĐẾN VÍ (ĐÍCH)</label>
-                  <select 
-                    value={transferTo} 
+                  <select
+                    value={transferTo}
                     onChange={e => setTransferTo(e.target.value)}
                     className="form-select"
                   >
@@ -1205,7 +1396,7 @@ export const Wallets: React.FC = () => {
               {/* Amount */}
               <div className="form-group">
                 <label>SỐ TIỀN CHUYỂN</label>
-                <input 
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1220,7 +1411,7 @@ export const Wallets: React.FC = () => {
               {/* Date */}
               <div className="form-group">
                 <label>NGÀY GIAO DỊCH</label>
-                <input 
+                <input
                   type="date"
                   value={transferDate}
                   onChange={e => setTransferDate(e.target.value)}
@@ -1232,7 +1423,7 @@ export const Wallets: React.FC = () => {
               {/* Description */}
               <div className="form-group">
                 <label>GHI CHÚ CHUYỂN KHOẢN</label>
-                <input 
+                <input
                   type="text"
                   value={transferDesc}
                   onChange={e => setTransferDesc(e.target.value)}
@@ -1240,8 +1431,8 @@ export const Wallets: React.FC = () => {
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1268,7 +1459,7 @@ export const Wallets: React.FC = () => {
               {/* Amount */}
               <div className="form-group">
                 <label>SỐ TIỀN NẠP (VND)</label>
-                <input 
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1283,7 +1474,7 @@ export const Wallets: React.FC = () => {
               {/* Description */}
               <div className="form-group">
                 <label>GHI CHÚ / NỘI DUNG</label>
-                <input 
+                <input
                   type="text"
                   value={topUpDesc}
                   onChange={e => setTopUpDesc(e.target.value)}
@@ -1291,8 +1482,8 @@ export const Wallets: React.FC = () => {
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1319,7 +1510,7 @@ export const Wallets: React.FC = () => {
               {/* Wallet Name */}
               <div className="form-group">
                 <label>TÊN VÍ / NGÂN HÀNG</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Vietcombank, Momo..."
                   value={editWalletName}
@@ -1333,8 +1524,8 @@ export const Wallets: React.FC = () => {
               {/* Wallet Type */}
               <div className="form-group">
                 <label>LOẠI HÌNH TÀI KHOẢN</label>
-                <select 
-                  value={editWalletType} 
+                <select
+                  value={editWalletType}
                   onChange={e => {
                     const val = e.target.value as 'bank' | 'e-wallet' | 'cash';
                     setEditWalletType(val);
@@ -1363,8 +1554,8 @@ export const Wallets: React.FC = () => {
                   {editWalletType === 'bank' ? 'CHI TIẾT NGÂN HÀNG' : editWalletType === 'e-wallet' ? 'CHI TIẾT VÍ ĐIỆN TỬ' : 'CHI TIẾT TIỀM MẶT'}
                 </label>
                 {editWalletType === 'bank' && (
-                  <select 
-                    value={editWalletSubType} 
+                  <select
+                    value={editWalletSubType}
                     onChange={e => {
                       setEditWalletSubType(e.target.value);
                       setEditWalletName(e.target.value);
@@ -1377,8 +1568,8 @@ export const Wallets: React.FC = () => {
                   </select>
                 )}
                 {editWalletType === 'e-wallet' && (
-                  <select 
-                    value={editWalletSubType} 
+                  <select
+                    value={editWalletSubType}
                     onChange={e => {
                       setEditWalletSubType(e.target.value);
                       setEditWalletName(e.target.value);
@@ -1390,8 +1581,8 @@ export const Wallets: React.FC = () => {
                   </select>
                 )}
                 {editWalletType === 'cash' && (
-                  <select 
-                    value={editWalletSubType} 
+                  <select
+                    value={editWalletSubType}
                     onChange={e => {
                       setEditWalletSubType(e.target.value);
                       setEditWalletName(e.target.value);
@@ -1407,7 +1598,7 @@ export const Wallets: React.FC = () => {
               {/* Wallet Balance */}
               <div className="form-group">
                 <label>SỐ DƯ HIỆN TẠI (VND)</label>
-                <input 
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1423,7 +1614,7 @@ export const Wallets: React.FC = () => {
                 <label>MÀU SẮC CHỦ ĐẠO THẺ</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                   {COLORS.map(c => (
-                    <button 
+                    <button
                       key={c}
                       type="button"
                       onClick={() => setEditWalletColor(c)}
@@ -1442,8 +1633,8 @@ export const Wallets: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1470,7 +1661,7 @@ export const Wallets: React.FC = () => {
               {/* Borrower Name */}
               <div className="form-group">
                 <label>TÊN NGƯỜI VAY</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Nguyễn Văn A..."
                   value={debtBorrower}
@@ -1484,7 +1675,7 @@ export const Wallets: React.FC = () => {
               {/* Amount */}
               <div className="form-group">
                 <label>SỐ TIỀN VAY (VND)</label>
-                <input 
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1498,7 +1689,7 @@ export const Wallets: React.FC = () => {
               {/* Source Wallet */}
               <div className="form-group">
                 <label>NGUỒN TIỀN XUẤT PHÁT</label>
-                <select 
+                <select
                   value={debtWalletId}
                   onChange={e => setDebtWalletId(e.target.value)}
                   className="form-select"
@@ -1516,7 +1707,7 @@ export const Wallets: React.FC = () => {
               {/* Date */}
               <div className="form-group">
                 <label>NGÀY GHI NỢ</label>
-                <input 
+                <input
                   type="date"
                   value={debtDate}
                   onChange={e => setDebtDate(e.target.value)}
@@ -1528,7 +1719,7 @@ export const Wallets: React.FC = () => {
               {/* Description */}
               <div className="form-group">
                 <label>GHI CHÚ / MÔ TẢ</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Vay tiêu dùng, mua sắm..."
                   value={debtDesc}
@@ -1537,8 +1728,8 @@ export const Wallets: React.FC = () => {
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1565,7 +1756,7 @@ export const Wallets: React.FC = () => {
               {/* Repay Amount */}
               <div className="form-group">
                 <label>SỐ TIỀN THU HỒI (VND)</label>
-                <input 
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1583,7 +1774,7 @@ export const Wallets: React.FC = () => {
               {/* Destination Wallet */}
               <div className="form-group">
                 <label>VÍ / TÀI KHOẢN NHẬN TIỀN</label>
-                <select 
+                <select
                   value={repayWalletId}
                   onChange={e => setRepayWalletId(e.target.value)}
                   className="form-select"
@@ -1597,8 +1788,8 @@ export const Wallets: React.FC = () => {
                 </select>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1625,7 +1816,7 @@ export const Wallets: React.FC = () => {
               {/* Asset Name */}
               <div className="form-group">
                 <label>TÊN TÀI SẢN</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Vàng 9999 SJC, Cổ phiếu FPT..."
                   value={newAssetName}
@@ -1639,7 +1830,7 @@ export const Wallets: React.FC = () => {
               {/* Unit */}
               <div className="form-group">
                 <label>ĐƠN VỊ TÍNH</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Chỉ, Lượng, Cổ phiếu..."
                   value={newAssetUnit}
@@ -1652,7 +1843,7 @@ export const Wallets: React.FC = () => {
               {/* Quantity */}
               <div className="form-group">
                 <label>SỐ LƯỢNG</label>
-                <input 
+                <input
                   type="text"
                   placeholder="0.0"
                   value={newAssetQuantity}
@@ -1665,10 +1856,24 @@ export const Wallets: React.FC = () => {
                 />
               </div>
 
+              {/* Purchase Price per unit */}
+              <div className="form-group">
+                <label>ĐƠN GIÁ LÚC MUA (VND)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0đ"
+                  value={newAssetPurchasePricePerUnit}
+                  onChange={e => handleAmountChange(e.target.value, setNewAssetPurchasePricePerUnit)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
               {/* Price per unit */}
               <div className="form-group">
-                <label>ĐƠN GIÁ QUY ĐỔI (VND)</label>
-                <input 
+                <label>ĐƠN GIÁ HIỆN TẠI (VND)</label>
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1682,7 +1887,7 @@ export const Wallets: React.FC = () => {
               {/* Date */}
               <div className="form-group">
                 <label>NGÀY SỞ HỮU</label>
-                <input 
+                <input
                   type="date"
                   value={newAssetDate}
                   onChange={e => setNewAssetDate(e.target.value)}
@@ -1694,7 +1899,7 @@ export const Wallets: React.FC = () => {
               {/* Description */}
               <div className="form-group">
                 <label>GHI CHÚ / MÔ TẢ</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Mua ở tiệm PNJ..."
                   value={newAssetDesc}
@@ -1708,7 +1913,7 @@ export const Wallets: React.FC = () => {
                 <label>MÀU SẮC THẺ TÀI SẢN</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                   {COLORS.map(c => (
-                    <button 
+                    <button
                       key={c}
                       type="button"
                       onClick={() => setNewAssetColor(c)}
@@ -1727,8 +1932,8 @@ export const Wallets: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}
@@ -1755,7 +1960,7 @@ export const Wallets: React.FC = () => {
               {/* Asset Name */}
               <div className="form-group">
                 <label>TÊN TÀI SẢN</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Vàng 9999 SJC..."
                   value={editAssetName}
@@ -1768,7 +1973,7 @@ export const Wallets: React.FC = () => {
               {/* Unit */}
               <div className="form-group">
                 <label>ĐƠN VỊ TÍNH</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Chỉ, Lượng..."
                   value={editAssetUnit}
@@ -1781,7 +1986,7 @@ export const Wallets: React.FC = () => {
               {/* Quantity */}
               <div className="form-group">
                 <label>SỐ LƯỢNG</label>
-                <input 
+                <input
                   type="text"
                   placeholder="0.0"
                   value={editAssetQuantity}
@@ -1794,10 +1999,24 @@ export const Wallets: React.FC = () => {
                 />
               </div>
 
+              {/* Purchase Price per unit */}
+              <div className="form-group">
+                <label>ĐƠN GIÁ LÚC MUA (VND)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0đ"
+                  value={editAssetPurchasePricePerUnit}
+                  onChange={e => handleAmountChange(e.target.value, setEditAssetPurchasePricePerUnit)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
               {/* Price per unit */}
               <div className="form-group">
-                <label>ĐƠN GIÁ QUY ĐỔI (VND)</label>
-                <input 
+                <label>ĐƠN GIÁ HIỆN TẠI (VND)</label>
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="0đ"
@@ -1811,7 +2030,7 @@ export const Wallets: React.FC = () => {
               {/* Date */}
               <div className="form-group">
                 <label>NGÀY SỞ HỮU</label>
-                <input 
+                <input
                   type="date"
                   value={editAssetDate}
                   onChange={e => setEditAssetDate(e.target.value)}
@@ -1823,7 +2042,7 @@ export const Wallets: React.FC = () => {
               {/* Description */}
               <div className="form-group">
                 <label>GHI CHÚ / MÔ TẢ</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ví dụ: Mua ở tiệm..."
                   value={editAssetDesc}
@@ -1837,7 +2056,7 @@ export const Wallets: React.FC = () => {
                 <label>MÀU SẮC THẺ TÀI SẢN</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                   {COLORS.map(c => (
-                    <button 
+                    <button
                       key={c}
                       type="button"
                       onClick={() => setEditAssetColor(c)}
@@ -1856,8 +2075,8 @@ export const Wallets: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="button-primary"
                 style={{ width: '100%', padding: '14px', marginTop: '16px' }}
                 disabled={isSubmitting}

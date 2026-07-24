@@ -25,6 +25,7 @@ interface AppContextType {
   addAsset: (asset: Omit<Asset, 'id'>) => Promise<void>;
   updateAsset: (id: string, asset: Partial<Asset>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
+  updateGoldPrices: () => Promise<{ updatedCount: number; details: string[] }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -464,6 +465,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const updateGoldPrices = async () => {
+    setIsLoading(true);
+    try {
+      const result = await api.updateGoldPrices();
+      if (result.success && result.assets) {
+        setAssets(result.assets);
+      }
+      return { updatedCount: result.updatedCount, details: result.details };
+    } catch (err: any) {
+      console.error(err);
+      throw new Error(err.message || 'Không thể cập nhật giá vàng từ website.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -488,6 +505,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addAsset,
         updateAsset,
         deleteAsset,
+        updateGoldPrices,
       }}
     >
       {children}
