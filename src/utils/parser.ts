@@ -128,10 +128,13 @@ export const parseQuickInput = (text: string, wallets: Wallet[]): ParsedResult =
     else if (cleanDesc.includes('freelance') || cleanDesc.includes('dự án') || cleanDesc.includes('code')) result.category = 'Freelance';
     else if (cleanDesc.includes('tặng') || cleanDesc.includes('cho') || cleanDesc.includes('biếu')) result.category = 'Được tặng';
     else if (cleanDesc.includes('đầu tư') || cleanDesc.includes('lãi')) result.category = 'Đầu tư';
+    else if (/(nợ|no|vay|mượn|muon|trả|tra)/i.test(cleanDesc)) result.category = 'Nợ';
     else result.category = 'Khác';
   } else {
     // Expense categories
-    if (/(bánh|banh|ăn|an|uống|uong|cf|cafe|cà phê|cơm|com|bún|phở|pho|trà|tra|sữa|sua|lẩu|lau|thịt|cá|rau|nhậu|nhau)/i.test(cleanDesc)) {
+    if (/(nợ|no|cho vay|vay|mượn|muon|trả|tra)/i.test(cleanDesc)) {
+      result.category = 'Nợ';
+    } else if (/(bánh|banh|ăn|an|uống|uong|cf|cafe|cà phê|cơm|com|bún|phở|pho|trà|tra|sữa|sua|lẩu|lau|thịt|cá|rau|nhậu|nhau)/i.test(cleanDesc)) {
       result.category = 'Ăn uống';
     } else if (/(áo|quần|ao|quan|giày|dep|shopee|lazada|tiki|mua|sắm|sam|mall|tivi|điện thoại|quà|qua)/i.test(cleanDesc)) {
       result.category = 'Mua sắm';

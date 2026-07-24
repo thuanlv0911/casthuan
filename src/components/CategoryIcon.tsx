@@ -12,6 +12,7 @@ import {
   Laptop, 
   Gift, 
   TrendingUp, 
+  Coins,
   HelpCircle 
 } from 'lucide-react';
 
@@ -65,9 +66,12 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({ category, type, size
     case 'duoc tang':
     case 'tặng':
       return <Gift size={size} />;
-    case 'đầu tư':
+     case 'đầu tư':
     case 'dau tu':
       return <TrendingUp size={size} />;
+    case 'nợ':
+    case 'no':
+      return <Coins size={size} />;
 
     default:
       return <HelpCircle size={size} />;

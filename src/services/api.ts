@@ -6,6 +6,17 @@ export interface Wallet {
   color: string;
 }
 
+export interface Asset {
+  id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  valuePerUnit: number;
+  date: string;
+  description: string;
+  color: string;
+}
+
 export interface Transaction {
   id: string;
   type: 'income' | 'expense' | 'transfer';
@@ -15,6 +26,16 @@ export interface Transaction {
   destinationWalletId?: string; // only for transfers
   date: string;
   description: string;
+}
+
+export interface Debt {
+  id: string;
+  borrower: string;
+  amount: number;
+  walletId: string;
+  date: string;
+  description: string;
+  status: 'pending' | 'paid';
 }
 
 const API_BASE = `http://${window.location.hostname}:3001`;
@@ -92,5 +113,73 @@ export const api = {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete transaction');
+  },
+
+  // Debts
+  async getDebts(): Promise<Debt[]> {
+    const res = await fetch(`${API_BASE}/debts`);
+    if (!res.ok) throw new Error('Failed to fetch debts');
+    return res.json();
+  },
+
+  async createDebt(data: Omit<Debt, 'id'>): Promise<Debt> {
+    const res = await fetch(`${API_BASE}/debts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create debt');
+    return res.json();
+  },
+
+  async updateDebt(id: string, data: Partial<Debt>): Promise<Debt> {
+    const res = await fetch(`${API_BASE}/debts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update debt');
+    return res.json();
+  },
+
+  async deleteDebt(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/debts/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete debt');
+  },
+
+  // Assets
+  async getAssets(): Promise<Asset[]> {
+    const res = await fetch(`${API_BASE}/assets`);
+    if (!res.ok) throw new Error('Failed to fetch assets');
+    return res.json();
+  },
+
+  async createAsset(data: Omit<Asset, 'id'>): Promise<Asset> {
+    const res = await fetch(`${API_BASE}/assets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create asset');
+    return res.json();
+  },
+
+  async updateAsset(id: string, data: Partial<Asset>): Promise<Asset> {
+    const res = await fetch(`${API_BASE}/assets/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update asset');
+    return res.json();
+  },
+
+  async deleteAsset(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/assets/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete asset');
   },
 };

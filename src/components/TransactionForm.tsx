@@ -11,8 +11,8 @@ interface TransactionFormProps {
 }
 
 const CATEGORIES = {
-  expense: ['Ăn uống', 'Mua sắm', 'Tiền nhà', 'Xăng xe', 'Sức khỏe', 'Giải trí', 'Học tập', 'Khác'],
-  income: ['Lương', 'Freelance', 'Được tặng', 'Đầu tư', 'Khác'],
+  expense: ['Ăn uống', 'Mua sắm', 'Tiền nhà', 'Xăng xe', 'Sức khỏe', 'Giải trí', 'Học tập', 'Nợ', 'Khác'],
+  income: ['Lương', 'Freelance', 'Được tặng', 'Đầu tư', 'Nợ', 'Khác'],
   transfer: ['Chuyển khoản'],
 };
 

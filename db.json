@@ -11,15 +11,15 @@
       "id": "w2",
       "name": "TPBank",
       "type": "bank",
-      "balance": 300000,
+      "balance": 360000,
       "color": "#a855f7"
     },
     {
       "id": "b90f",
-      "name": "MBBankSDT",
+      "name": "TPBankUni",
       "type": "bank",
-      "balance": 16000,
-      "color": "#3b82f6"
+      "balance": 0,
+      "color": "#6366f1"
     },
     {
       "id": "865d",
@@ -39,7 +39,7 @@
       "id": "c090",
       "name": "Techcombank",
       "type": "bank",
-      "balance": 0,
+      "balance": 1000,
       "color": "#ec4899"
     },
     {
@@ -58,10 +58,10 @@
     },
     {
       "id": "f82a",
-      "name": "TPBankUni",
+      "name": "MBBankSDT",
       "type": "bank",
-      "balance": 0,
-      "color": "#6366f1"
+      "balance": 16000,
+      "color": "#3b82f6"
     }
   ],
   "transactions": [
@@ -183,6 +183,67 @@
       "destinationWalletId": "b90f",
       "date": "2026-07-24",
       "description": "MBBank"
+    },
+    {
+      "id": "2e7e",
+      "type": "income",
+      "amount": 1000,
+      "category": "Được tặng",
+      "walletId": "c090",
+      "date": "2026-07-24",
+      "description": "Nạp tiền vào ví"
+    },
+    {
+      "id": "82bd",
+      "type": "transfer",
+      "amount": 16000,
+      "category": "Chuyển khoản",
+      "walletId": "b90f",
+      "destinationWalletId": "f82a",
+      "date": "2026-07-24",
+      "description": "Chuyển khoản"
+    },
+    {
+      "id": "d006",
+      "type": "income",
+      "amount": 60000,
+      "category": "Được tặng",
+      "walletId": "w2",
+      "date": "2026-07-24",
+      "description": "Được tặng"
+    }
+  ],
+  "debts": [
+    {
+      "id": "d69c",
+      "borrower": "HAnh",
+      "amount": 8000000,
+      "walletId": "none",
+      "date": "2026-07-24",
+      "description": "Thế khó -.-",
+      "status": "pending"
+    }
+  ],
+  "assets": [
+    {
+      "id": "ce88",
+      "name": "Nhẫn Tròn ép vỉ (Kim Gia Bảo ) 24K (999.9)",
+      "unit": "Chỉ",
+      "quantity": 1,
+      "valuePerUnit": 14260000,
+      "date": "2026-03-30",
+      "description": "BTMH",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "44e2",
+      "name": "Vàng ép vỉ 9999 Tùng Cúc Trúc Mai",
+      "unit": "Chỉ",
+      "quantity": 0.4,
+      "valuePerUnit": 14260000,
+      "date": "2026-05-25",
+      "description": "BTMH",
+      "color": "#f59e0b"
     }
   ]
 }
