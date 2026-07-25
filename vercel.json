@@ -1,0 +1,15 @@
+{
+  "rewrites": [
+    { "source": "/wallets", "destination": "/api/index.js" },
+    { "source": "/wallets/:path*", "destination": "/api/index.js" },
+    { "source": "/transactions", "destination": "/api/index.js" },
+    { "source": "/transactions/:path*", "destination": "/api/index.js" },
+    { "source": "/debts", "destination": "/api/index.js" },
+    { "source": "/debts/:path*", "destination": "/api/index.js" },
+    { "source": "/assets", "destination": "/api/index.js" },
+    { "source": "/assets/:path*", "destination": "/api/index.js" },
+    { "source": "/categories", "destination": "/api/index.js" },
+    { "source": "/categories/:path*", "destination": "/api/index.js" },
+    { "source": "/api/:path*", "destination": "/api/index.js" }
+  ]
+}

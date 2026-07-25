@@ -45,7 +45,11 @@ export interface Debt {
   status: 'pending' | 'paid';
 }
 
-const API_BASE = `http://${window.location.hostname}:3001`;
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? (import.meta.env.VITE_API_URL as string) 
+  : (window.location.hostname === 'localhost' || window.location.hostname.startsWith('192.168.'))
+    ? `http://${window.location.hostname}:3001`
+    : '';
 
 export const api = {
   // Wallets

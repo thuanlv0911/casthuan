@@ -213,13 +213,13 @@
       "description": "Được tặng"
     },
     {
-      "id": "54eb",
       "type": "expense",
       "amount": 30000,
       "category": "Giải trí",
       "walletId": "w2",
       "date": "2026-07-25",
-      "description": "FC"
+      "description": "FCM",
+      "id": "54eb"
     },
     {
       "id": "e147",
