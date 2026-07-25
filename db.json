@@ -249,20 +249,80 @@
     }
   ],
   "categories": [
-    { "id": "cat-exp-1", "name": "Ăn uống", "type": "expense" },
-    { "id": "cat-exp-2", "name": "Mua sắm", "type": "expense" },
-    { "id": "cat-exp-3", "name": "Tiền nhà", "type": "expense" },
-    { "id": "cat-exp-4", "name": "Xăng xe", "type": "expense" },
-    { "id": "cat-exp-5", "name": "Sức khỏe", "type": "expense" },
-    { "id": "cat-exp-6", "name": "Giải trí", "type": "expense" },
-    { "id": "cat-exp-7", "name": "Học tập", "type": "expense" },
-    { "id": "cat-exp-8", "name": "Nợ", "type": "expense" },
-    { "id": "cat-exp-9", "name": "Khác", "type": "expense" },
-    { "id": "cat-inc-1", "name": "Lương", "type": "income" },
-    { "id": "cat-inc-2", "name": "Freelance", "type": "income" },
-    { "id": "cat-inc-3", "name": "Được tặng", "type": "income" },
-    { "id": "cat-inc-4", "name": "Đầu tư", "type": "income" },
-    { "id": "cat-inc-5", "name": "Nợ", "type": "income" },
-    { "id": "cat-inc-6", "name": "Khác", "type": "income" }
+    {
+      "id": "cat-exp-1",
+      "name": "Ăn uống",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-2",
+      "name": "Mua sắm",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-3",
+      "name": "Tiền nhà",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-4",
+      "name": "Xăng xe",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-5",
+      "name": "Sức khỏe",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-6",
+      "name": "Giải trí",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-7",
+      "name": "Học tập",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-8",
+      "name": "Nợ",
+      "type": "expense"
+    },
+    {
+      "id": "cat-exp-9",
+      "name": "Khác",
+      "type": "expense"
+    },
+    {
+      "id": "cat-inc-1",
+      "name": "Lương",
+      "type": "income"
+    },
+    {
+      "id": "cat-inc-2",
+      "name": "Freelance",
+      "type": "income"
+    },
+    {
+      "id": "cat-inc-3",
+      "name": "Được tặng",
+      "type": "income"
+    },
+    {
+      "id": "cat-inc-4",
+      "name": "Đầu tư",
+      "type": "income"
+    },
+    {
+      "id": "cat-inc-5",
+      "name": "Nợ",
+      "type": "income"
+    },
+    {
+      "id": "cat-inc-6",
+      "name": "Khác",
+      "type": "income"
+    }
   ]
 }
