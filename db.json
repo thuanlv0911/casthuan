@@ -11,7 +11,7 @@
       "id": "w2",
       "name": "TPBank",
       "type": "bank",
-      "balance": 360000,
+      "balance": 227000,
       "color": "#a855f7"
     },
     {
@@ -138,13 +138,13 @@
       "description": "Ớt, hành, mướp đắng, đậu phụ"
     },
     {
-      "id": "006e",
       "type": "expense",
       "amount": 20000,
-      "category": "Khác",
+      "category": "Giải trí",
       "walletId": "w2",
       "date": "2026-07-24",
-      "description": "đào lửa"
+      "description": "đào lửa",
+      "id": "006e"
     },
     {
       "id": "ae82",
@@ -211,6 +211,33 @@
       "walletId": "w2",
       "date": "2026-07-24",
       "description": "Được tặng"
+    },
+    {
+      "type": "expense",
+      "amount": 30000,
+      "category": "Giải trí",
+      "walletId": "w2",
+      "date": "2026-07-25",
+      "description": "FCM",
+      "id": "54eb"
+    },
+    {
+      "id": "e147",
+      "type": "expense",
+      "amount": 53000,
+      "category": "Khác",
+      "walletId": "w2",
+      "date": "2026-07-25",
+      "description": "Ha"
+    },
+    {
+      "id": "e3ca",
+      "type": "expense",
+      "amount": 50000,
+      "category": "Giải trí",
+      "walletId": "w2",
+      "date": "2026-07-25",
+      "description": "FCM"
     }
   ],
   "debts": [
