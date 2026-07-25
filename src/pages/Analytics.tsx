@@ -4,11 +4,12 @@ import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/format';
 
 export const Analytics: React.FC = () => {
-  const { transactions } = useApp();
+  const { transactions, wallets } = useApp();
   
-  // States for selected month and year
+  // States for selected month, year and wallet filter
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedWalletId, setSelectedWalletId] = useState<string>('All');
 
   // Generate lists of months and years available in transactions to select
   const availableMonthsYears = useMemo(() => {
@@ -35,10 +36,20 @@ export const Analytics: React.FC = () => {
 
   const currentMonthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
 
-  // Filter transactions for selected month
+  // Filter transactions for selected month and selected wallet
   const monthTransactions = useMemo(() => {
-    return transactions.filter(t => t.date.startsWith(currentMonthPrefix));
-  }, [transactions, currentMonthPrefix]);
+    return transactions.filter(t => {
+      const matchMonth = t.date.startsWith(currentMonthPrefix);
+      if (!matchMonth) return false;
+      
+      if (selectedWalletId === 'All') return true;
+      
+      // If a specific wallet is selected:
+      // - Standard expense/income: walletId must match selectedWalletId
+      // - Transfer: either walletId (source) or destinationWalletId (dest) must match selectedWalletId
+      return t.walletId === selectedWalletId || t.destinationWalletId === selectedWalletId;
+    });
+  }, [transactions, currentMonthPrefix, selectedWalletId]);
 
   // Aggregate monthly values
   const monthlyStats = useMemo(() => {
@@ -46,10 +57,27 @@ export const Analytics: React.FC = () => {
     let expense = 0;
 
     monthTransactions.forEach(t => {
-      if (t.type === 'income') {
-        income += t.amount;
-      } else if (t.type === 'expense') {
-        expense += t.amount;
+      if (selectedWalletId === 'All') {
+        if (t.type === 'income') {
+          income += t.amount;
+        } else if (t.type === 'expense') {
+          expense += t.amount;
+        }
+      } else {
+        // Specific wallet: count incoming/outgoing transfers as income/expense
+        if (t.type === 'income' && t.walletId === selectedWalletId) {
+          income += t.amount;
+        } else if (t.type === 'expense' && t.walletId === selectedWalletId) {
+          expense += t.amount;
+        } else if (t.type === 'transfer') {
+          if (t.walletId === selectedWalletId) {
+            // Outbound transfer
+            expense += t.amount;
+          } else if (t.destinationWalletId === selectedWalletId) {
+            // Inbound transfer
+            income += t.amount;
+          }
+        }
       }
     });
 
@@ -57,32 +85,48 @@ export const Analytics: React.FC = () => {
     const expenseRatio = income > 0 ? (expense / income) * 100 : 0;
 
     return { income, expense, net, expenseRatio };
-  }, [monthTransactions]);
+  }, [monthTransactions, selectedWalletId]);
 
   // Expense breakdown by category
   const expenseBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};
     
-    monthTransactions
-      .filter(t => t.type === 'expense')
-      .forEach(t => {
-        breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
-      });
+    monthTransactions.forEach(t => {
+      if (selectedWalletId === 'All') {
+        if (t.type === 'expense') {
+          breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
+        }
+      } else {
+        if (t.type === 'expense' && t.walletId === selectedWalletId) {
+          breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
+        } else if (t.type === 'transfer' && t.walletId === selectedWalletId) {
+          breakdown['Chuyển khoản đi'] = (breakdown['Chuyển khoản đi'] || 0) + t.amount;
+        }
+      }
+    });
 
     return Object.entries(breakdown)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [monthTransactions]);
+  }, [monthTransactions, selectedWalletId]);
 
   // Income breakdown by category
   const incomeBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};
     
-    monthTransactions
-      .filter(t => t.type === 'income')
-      .forEach(t => {
-        breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
-      });
+    monthTransactions.forEach(t => {
+      if (selectedWalletId === 'All') {
+        if (t.type === 'income') {
+          breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
+        }
+      } else {
+        if (t.type === 'income' && t.walletId === selectedWalletId) {
+          breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
+        } else if (t.type === 'transfer' && t.destinationWalletId === selectedWalletId) {
+          breakdown['Chuyển khoản đến'] = (breakdown['Chuyển khoản đến'] || 0) + t.amount;
+        }
+      }
+    });
 
     return Object.entries(breakdown)
       .map(([name, value]) => ({ name, value }))
@@ -126,6 +170,60 @@ export const Analytics: React.FC = () => {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Wallet Pill Filters */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '8px', 
+          marginTop: '-4px'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setSelectedWalletId('All')}
+          style={{
+            background: selectedWalletId === 'All' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+            border: selectedWalletId === 'All' ? '1px solid var(--primary)' : '1px solid var(--card-border)',
+            color: '#fff',
+            padding: '8px 14px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.2s',
+            boxShadow: selectedWalletId === 'All' ? '0 4px 10px var(--primary-glow)' : 'none',
+            flexShrink: 0
+          }}
+        >
+          Tất cả ví
+        </button>
+        {wallets.map(w => (
+          <button
+            key={w.id}
+            type="button"
+            onClick={() => setSelectedWalletId(w.id)}
+            style={{
+              background: selectedWalletId === w.id ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+              border: selectedWalletId === w.id ? '1px solid var(--primary)' : '1px solid var(--card-border)',
+              color: '#fff',
+              padding: '8px 14px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s',
+              boxShadow: selectedWalletId === w.id ? '0 4px 10px var(--primary-glow)' : 'none',
+              flexShrink: 0
+            }}
+          >
+            {w.name}
+          </button>
+        ))}
       </div>
 
       {/* Summary Box */}
