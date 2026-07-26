@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -29,7 +30,7 @@ if (!MONGODB_URI) {
 
 // Define Schemas
 const Wallet = mongoose.model('Wallet', new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, default: () => crypto.randomUUID(), unique: true },
   name: { type: String, required: true },
   type: { type: String, required: true },
   balance: { type: Number, required: true },
@@ -37,7 +38,7 @@ const Wallet = mongoose.model('Wallet', new mongoose.Schema({
 }, { timestamps: true }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, default: () => crypto.randomUUID(), unique: true },
   type: { type: String, required: true },
   amount: { type: Number, required: true },
   category: { type: String, required: true },
@@ -48,7 +49,7 @@ const Transaction = mongoose.model('Transaction', new mongoose.Schema({
 }, { timestamps: true }));
 
 const Debt = mongoose.model('Debt', new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, default: () => crypto.randomUUID(), unique: true },
   borrower: { type: String, required: true },
   amount: { type: Number, required: true },
   walletId: { type: String, required: true },
@@ -58,7 +59,7 @@ const Debt = mongoose.model('Debt', new mongoose.Schema({
 }, { timestamps: true }));
 
 const Asset = mongoose.model('Asset', new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, default: () => crypto.randomUUID(), unique: true },
   name: { type: String, required: true },
   unit: { type: String, required: true },
   quantity: { type: Number, required: true },
@@ -70,7 +71,7 @@ const Asset = mongoose.model('Asset', new mongoose.Schema({
 }, { timestamps: true }));
 
 const Category = mongoose.model('Category', new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, default: () => crypto.randomUUID(), unique: true },
   name: { type: String, required: true },
   type: { type: String, required: true }
 }, { timestamps: true }));
