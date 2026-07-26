@@ -18,8 +18,21 @@ import {
   Plane,
   Zap,
   Wifi,
-  Wrench
+  Wrench,
+  Coffee,
+  Shirt,
+  Film,
+  HeartPulse,
+  PiggyBank,
+  Smartphone,
+  GraduationCap,
+  Dumbbell,
+  PawPrint,
+  ShoppingCart,
+  Fuel,
+  Trophy
 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface CategoryIconProps {
   category: string;
@@ -27,7 +40,55 @@ interface CategoryIconProps {
   size?: number;
 }
 
+export const ICON_MAP: Record<string, React.FC<{ size?: number }>> = {
+  Utensils,
+  ShoppingBag,
+  Home,
+  Car,
+  Activity,
+  Gamepad2,
+  BookOpen,
+  ArrowLeftRight,
+  Briefcase,
+  Laptop,
+  Gift,
+  TrendingUp,
+  Coins,
+  HelpCircle,
+  Heart,
+  Plane,
+  Zap,
+  Wifi,
+  Wrench,
+  Coffee,
+  Shirt,
+  Film,
+  HeartPulse,
+  PiggyBank,
+  Smartphone,
+  GraduationCap,
+  Dumbbell,
+  PawPrint,
+  ShoppingCart,
+  Fuel,
+  Trophy
+};
+
 export const CategoryIcon: React.FC<CategoryIconProps> = ({ category, type, size = 18 }) => {
+  // Try to use app context to find custom icon
+  try {
+    const { categories } = useApp();
+    const matchedCat = categories.find(
+      c => c.name.toLowerCase().trim() === category.toLowerCase().trim() && c.type === (type === 'transfer' ? 'expense' : type)
+    );
+    if (matchedCat && matchedCat.icon && ICON_MAP[matchedCat.icon]) {
+      const IconComponent = ICON_MAP[matchedCat.icon];
+      return <IconComponent size={size} />;
+    }
+  } catch (e) {
+    // If context is not available for some reason, fallback
+  }
+
   const cleanCat = category.toLowerCase().trim();
 
   if (type === 'transfer' || cleanCat === 'chuyển khoản') {

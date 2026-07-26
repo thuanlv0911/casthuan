@@ -1,16 +1,16 @@
 import React, { useMemo } from 'react';
-import { ArrowUpRight, ArrowDownRight, CreditCard, ChevronRight, PlusCircle, Pencil } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, CreditCard, ChevronRight, PlusCircle, Pencil, Folder } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate } from '../utils/format';
 import type { Transaction } from '../services/api';
 import { CategoryIcon } from '../components/CategoryIcon';
 
 interface DashboardProps {
-  onOpenAddTransaction: () => void;
+  onOpenManageCategories: () => void;
   onOpenEdit: (tx: Transaction) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOpenEdit }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onOpenManageCategories, onOpenEdit }) => {
   const { wallets, transactions, isLoading, setActiveTab } = useApp();
 
   // Get current month details dynamically
@@ -95,7 +95,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
           <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Ví của Thuận</h2>
         </div>
         <button
-          onClick={onOpenAddTransaction}
+          onClick={onOpenManageCategories}
           style={{
             background: 'rgba(99, 102, 241, 0.15)',
             border: 'none',
@@ -110,7 +110,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenAddTransaction, onOp
             cursor: 'pointer'
           }}
         >
-          <PlusCircle size={15} /> Ghi chép
+          <Folder size={15} /> Hạng mục
         </button>
       </div>
 

@@ -454,7 +454,7 @@ export const Wallets: React.FC = () => {
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: 700 }}>Ví & Ngân hàng</h2>
           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Quản lý nguồn tài chính của bạn</span>
@@ -554,7 +554,7 @@ export const Wallets: React.FC = () => {
             whiteSpace: 'nowrap'
           }}
         >
-          💎 Tài sản khác ({assets.length})
+          🪙 Vàng ({assets.length})
         </button>
         <button
           type="button"

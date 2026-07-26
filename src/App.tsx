@@ -6,11 +6,13 @@ import { Transactions } from './pages/Transactions';
 import { Wallets } from './pages/Wallets';
 import { Analytics } from './pages/Analytics';
 import { TransactionForm } from './components/TransactionForm';
+import { CategoryManager } from './components/CategoryManager';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import type { Transaction } from './services/api';
 
 function AppContent() {
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const { activeTab, error, isLoading, refreshData } = useApp();
 
@@ -107,7 +109,7 @@ function AppContent() {
       <main style={{ flex: 1, overflowY: 'auto' }}>
         {activeTab === 'dashboard' && (
           <Dashboard 
-            onOpenAddTransaction={() => setIsAddTxOpen(true)} 
+            onOpenManageCategories={() => setIsCategoryManagerOpen(true)} 
             onOpenEdit={handleOpenEdit} 
           />
         )}
@@ -125,6 +127,9 @@ function AppContent() {
 
       {/* Add Transaction Modal */}
       <TransactionForm isOpen={isAddTxOpen} onClose={handleCloseForm} editingTransaction={editingTransaction} />
+
+      {/* Category Manager Modal */}
+      <CategoryManager isOpen={isCategoryManagerOpen} onClose={() => setIsCategoryManagerOpen(false)} />
 
       <style>{`
         .refresh-btn:active {
