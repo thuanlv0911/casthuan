@@ -22,6 +22,7 @@ export interface Category {
   id: string;
   name: string;
   type: 'income' | 'expense';
+  icon?: string;
 }
 
 export interface Transaction {
@@ -47,7 +48,7 @@ export interface Debt {
 
 const API_BASE = import.meta.env.VITE_API_URL 
   ? (import.meta.env.VITE_API_URL as string) 
-  : (window.location.hostname === 'localhost' || window.location.hostname.startsWith('192.168.'))
+  : import.meta.env.DEV
     ? `http://${window.location.hostname}:3001`
     : '';
 

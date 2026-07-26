@@ -73,7 +73,8 @@ const Asset = mongoose.model('Asset', new mongoose.Schema({
 const Category = mongoose.model('Category', new mongoose.Schema({
   id: { type: String, default: () => crypto.randomUUID(), unique: true },
   name: { type: String, required: true },
-  type: { type: String, required: true }
+  type: { type: String, required: true },
+  icon: { type: String }
 }, { timestamps: true }));
 
 // Seeding function (reads db.json and uploads data if MongoDB collection is empty)
