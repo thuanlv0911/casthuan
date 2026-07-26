@@ -131,7 +131,7 @@ export const Analytics: React.FC = () => {
     return Object.entries(breakdown)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [monthTransactions]);
+  }, [monthTransactions, selectedWalletId]);
 
   return (
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s' }}>
