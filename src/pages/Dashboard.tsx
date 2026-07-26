@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowUpRight, ArrowDownRight, CreditCard, ChevronRight, PlusCircle, Pencil, Folder } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, CreditCard, ChevronRight, Pencil, Folder } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate } from '../utils/format';
 import type { Transaction } from '../services/api';
