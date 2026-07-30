@@ -34,7 +34,8 @@ const Wallet = mongoose.model('Wallet', new mongoose.Schema({
   name: { type: String, required: true },
   type: { type: String, required: true },
   balance: { type: Number, required: true },
-  color: { type: String, required: true }
+  color: { type: String, required: true },
+  order: { type: Number, default: 0 }
 }, { timestamps: true }));
 
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({

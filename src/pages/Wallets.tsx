@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins, RefreshCw } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/format';
 import type { Wallet, Asset } from '../services/api';
@@ -260,6 +260,28 @@ export const Wallets: React.FC = () => {
       } catch (err: any) {
         alert(err.message || 'Lỗi khi xóa ví.');
       }
+    }
+  };
+
+  const handleMoveWallet = async (id: string, direction: 'up' | 'down') => {
+    const index = wallets.findIndex(w => w.id === id);
+    if (index === -1) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= wallets.length) return;
+
+    const currentWallet = wallets[index];
+    const targetWallet = wallets[targetIndex];
+
+    const currentOrder = currentWallet.order ?? index;
+    const targetOrder = targetWallet.order ?? targetIndex;
+
+    try {
+      await Promise.all([
+        updateWallet(currentWallet.id, { order: targetOrder }),
+        updateWallet(targetWallet.id, { order: currentOrder })
+      ]);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi sắp xếp ví.');
     }
   };
 
@@ -633,7 +655,7 @@ export const Wallets: React.FC = () => {
                 Chưa có tài khoản ví nào được tạo. Hãy thêm ví mới ngay!
               </div>
             ) : (
-              wallets.map(w => (
+              wallets.map((w, idx) => (
                 <div
                   key={w.id}
                   onClick={() => handleOpenTopUp(w)}
@@ -674,6 +696,56 @@ export const Wallets: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      {idx > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveWallet(w.id, 'up');
+                          }}
+                          style={{
+                            background: 'rgba(255,255,255,0.15)',
+                            border: 'none',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            transition: 'background 0.2s'
+                          }}
+                          title="Di chuyển lên"
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                      )}
+
+                      {idx < wallets.length - 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveWallet(w.id, 'down');
+                          }}
+                          style={{
+                            background: 'rgba(255,255,255,0.15)',
+                            border: 'none',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            transition: 'background 0.2s'
+                          }}
+                          title="Di chuyển xuống"
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                      )}
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

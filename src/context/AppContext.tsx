@@ -55,7 +55,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         api.getAssets(),
         api.getCategories()
       ]);
-      setWallets(wData);
+      const sortedWallets = wData
+        .map((w, idx) => ({ ...w, order: w.order !== undefined ? w.order : idx }))
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      setWallets(sortedWallets);
       setTransactions(tData);
       setDebts(dData);
       setAssets(aData);
@@ -275,8 +278,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addWallet = async (walletData: Omit<Wallet, 'id'>) => {
     setIsLoading(true);
     try {
-      const newWallet = await api.createWallet(walletData);
-      setWallets(prev => [...prev, newWallet]);
+      const maxOrder = wallets.reduce((max, w) => Math.max(max, w.order ?? 0), -1);
+      const newWallet = await api.createWallet({
+        ...walletData,
+        order: maxOrder + 1
+      });
+      setWallets(prev => [...prev, newWallet].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể thêm ví.');
@@ -289,7 +296,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoading(true);
     try {
       const updatedWallet = await api.updateWallet(id, walletData);
-      setWallets(prev => prev.map(w => w.id === id ? updatedWallet : w));
+      setWallets(prev =>
+        prev.map(w => w.id === id ? { ...w, ...updatedWallet } : w)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      );
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể cập nhật ví.');

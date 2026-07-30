@@ -4,6 +4,7 @@ export interface Wallet {
   type: 'cash' | 'bank' | 'e-wallet';
   balance: number;
   color: string;
+  order?: number;
 }
 
 export interface Asset {
