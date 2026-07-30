@@ -45,6 +45,7 @@ export interface Debt {
   date: string;
   description: string;
   status: 'pending' | 'paid';
+  type: 'loan' | 'borrow';
 }
 
 const API_BASE = import.meta.env.VITE_API_URL 
