@@ -32,6 +32,28 @@ interface AppContextType {
   deleteCategory: (id: string) => Promise<void>;
 }
 
+const WALLET_ORDER_MAP: { [key: string]: number } = {
+  'tiền lẻ (nhỏ)': 1,
+  'tpbank': 2,
+  'tpbankuni': 3,
+  'mbbanksdt': 4,
+  'mbbank36': 5,
+  'tiền mặt (lớn)': 6,
+  'vnpay': 7,
+  'momo': 8,
+  'techcombank': 9
+};
+
+const getWalletSortOrder = (name: string): number => {
+  const normalized = name.toLowerCase().trim();
+  for (const [key, value] of Object.entries(WALLET_ORDER_MAP)) {
+    if (normalized.includes(key)) {
+      return value;
+    }
+  }
+  return 999;
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -55,9 +77,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         api.getAssets(),
         api.getCategories()
       ]);
-      const sortedWallets = wData
-        .map((w, idx) => ({ ...w, order: w.order !== undefined ? w.order : idx }))
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const sortedWallets = wData.sort((a, b) => getWalletSortOrder(a.name) - getWalletSortOrder(b.name));
       setWallets(sortedWallets);
       setTransactions(tData);
       setDebts(dData);
@@ -278,12 +298,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addWallet = async (walletData: Omit<Wallet, 'id'>) => {
     setIsLoading(true);
     try {
-      const maxOrder = wallets.reduce((max, w) => Math.max(max, w.order ?? 0), -1);
-      const newWallet = await api.createWallet({
-        ...walletData,
-        order: maxOrder + 1
-      });
-      setWallets(prev => [...prev, newWallet].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      const newWallet = await api.createWallet(walletData);
+      setWallets(prev => [...prev, newWallet].sort((a, b) => getWalletSortOrder(a.name) - getWalletSortOrder(b.name)));
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể thêm ví.');
@@ -298,7 +314,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const updatedWallet = await api.updateWallet(id, walletData);
       setWallets(prev =>
         prev.map(w => w.id === id ? { ...w, ...updatedWallet } : w)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+            .sort((a, b) => getWalletSortOrder(a.name) - getWalletSortOrder(b.name))
       );
     } catch (err: any) {
       console.error(err);
