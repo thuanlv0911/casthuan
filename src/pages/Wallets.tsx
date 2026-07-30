@@ -33,6 +33,8 @@ export const Wallets: React.FC = () => {
   const [debtWalletId, setDebtWalletId] = useState<string>('');
   const [debtDesc, setDebtDesc] = useState<string>('');
   const [debtDate, setDebtDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [debtTab, setDebtTab] = useState<'loan' | 'borrow'>('loan');
+  const [newDebtType, setNewDebtType] = useState<'loan' | 'borrow'>('loan');
 
   // Repay Debt Form State
   const [showRepayModal, setShowRepayModal] = useState<boolean>(false);
@@ -309,7 +311,8 @@ export const Wallets: React.FC = () => {
         walletId: debtWalletId,
         date: debtDate,
         description: debtDesc.trim(),
-        status: 'pending'
+        status: 'pending',
+        type: newDebtType
       });
 
       // Reset
@@ -1124,26 +1127,96 @@ export const Wallets: React.FC = () => {
         </>
       ) : (
         <>
-          {/* Total Debt Panel */}
+          {/* Sub-tab: Loan vs Borrow */}
           <div style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--card-border)',
-            borderRadius: '16px',
-            padding: '16px 20px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '12px',
+            padding: '4px',
+            gap: '4px',
+            marginBottom: '16px'
           }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>TỔNG TIỀN CHO VAY (CHƯA THU)</span>
-            <span style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b' }}>{formatCurrency(debts.reduce((sum, d) => sum + d.amount, 0))}</span>
+            <button
+              type="button"
+              onClick={() => setDebtTab('loan')}
+              style={{
+                flex: 1,
+                background: debtTab === 'loan' ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                border: 'none',
+                color: debtTab === 'loan' ? '#f59e0b' : 'var(--text-secondary)',
+                padding: '8px 4px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              🤝 Cho vay
+            </button>
+            <button
+              type="button"
+              onClick={() => setDebtTab('borrow')}
+              style={{
+                flex: 1,
+                background: debtTab === 'borrow' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                border: 'none',
+                color: debtTab === 'borrow' ? '#ef4444' : 'var(--text-secondary)',
+                padding: '8px 4px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              💸 Vay nợ
+            </button>
           </div>
+
+          {/* Total Debt Panel */}
+          {debtTab === 'loan' ? (
+            <div style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--card-border)',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>TỔNG TIỀN CHO VAY (CHƯA THU)</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b' }}>
+                {formatCurrency(debts.filter(d => d.type !== 'borrow').reduce((sum, d) => sum + d.amount, 0))}
+              </span>
+            </div>
+          ) : (
+            <div style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--card-border)',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>TỔNG TIỀN ĐANG NỢ (CHƯA TRẢ)</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: '#ef4444' }}>
+                {formatCurrency(debts.filter(d => d.type === 'borrow').reduce((sum, d) => sum + d.amount, 0))}
+              </span>
+            </div>
+          )}
 
           <button
             type="button"
-            onClick={() => setShowAddDebtModal(true)}
+            onClick={() => {
+              setNewDebtType(debtTab);
+              setShowAddDebtModal(true);
+            }}
             style={{
-              background: 'var(--primary)',
+              background: debtTab === 'loan' ? 'var(--primary)' : '#ef4444',
               border: 'none',
               color: '#fff',
               padding: '12px',
@@ -1156,120 +1229,128 @@ export const Wallets: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              boxShadow: '0 4px 12px var(--primary-glow)'
+              boxShadow: debtTab === 'loan' ? '0 4px 12px var(--primary-glow)' : '0 4px 12px rgba(239, 68, 68, 0.2)'
             }}
           >
-            <PlusCircle size={15} /> Ghi nợ mới (Cho vay)
+            <PlusCircle size={15} /> {debtTab === 'loan' ? 'Ghi nợ mới (Cho vay)' : 'Ghi nợ mới (Đi vay)'}
           </button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-            {debts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--card-border)' }}>
-                Hiện chưa có khoản cho vay nào.
-              </div>
-            ) : (
-              debts.map(d => {
-                const w = wallets.find(wallet => wallet.id === d.walletId);
-                return (
-                  <div
-                    key={d.id}
-                    style={{
-                      background: 'var(--card-bg)',
-                      border: '1px solid var(--card-border)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'rgba(245, 158, 11, 0.1)',
-                        color: '#f59e0b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <User size={20} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>{d.borrower}</span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          Ngày vay: {d.date} {d.description ? `• ${d.description}` : ''}
-                        </span>
-                        {w ? (
-                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                            Nguồn xuất: <strong style={{ color: w.color }}>{w.name}</strong>
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                            Nguồn xuất: <em>Không qua ví</em>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '16px', fontWeight: 800, color: '#f59e0b' }}>
-                        {formatCurrency(d.amount)}
-                      </span>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenRepayModal(d)}
-                          style={{
-                            background: 'rgba(16, 185, 129, 0.1)',
-                            color: '#10b981',
-                            border: 'none',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Thu hồi nợ"
-                        >
-                          <Coins size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm('Bạn có chắc chắn muốn xóa khoản nợ này khỏi sổ ghi nợ? Thao tác này sẽ không tạo giao dịch hoàn trả tiền ví.')) {
-                              deleteDebt(d.id);
-                            }
-                          }}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#ef4444',
-                            border: 'none',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Xóa khoản nợ"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
+          {(() => {
+            const filteredDebts = debts.filter(d => debtTab === 'loan' ? (d.type !== 'borrow') : (d.type === 'borrow'));
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                {filteredDebts.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--card-border)' }}>
+                    {debtTab === 'loan' ? 'Hiện chưa có khoản cho vay nào.' : 'Hiện chưa có khoản đi vay nào.'}
                   </div>
-                );
-              })
-            )}
-          </div>
+                ) : (
+                  filteredDebts.map(d => {
+                    const w = wallets.find(wallet => wallet.id === d.walletId);
+                    const isBorrow = d.type === 'borrow';
+                    return (
+                      <div
+                        key={d.id}
+                        style={{
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--card-border)',
+                          borderRadius: '16px',
+                          padding: '16px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: isBorrow ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            color: isBorrow ? '#ef4444' : '#f59e0b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <User size={20} />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {isBorrow ? `Chủ nợ: ${d.borrower}` : d.borrower}
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              {isBorrow ? 'Ngày vay:' : 'Ngày vay:'} {d.date} {d.description ? `• ${d.description}` : ''}
+                            </span>
+                            {w ? (
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                {isBorrow ? 'Nhận vào ví:' : 'Nguồn xuất:'} <strong style={{ color: w.color }}>{w.name}</strong>
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                {isBorrow ? 'Nhận tiền:' : 'Nguồn xuất:'} <em>Không qua ví</em>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 800, color: isBorrow ? '#ef4444' : '#f59e0b' }}>
+                            {formatCurrency(d.amount)}
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRepayModal(d)}
+                              style={{
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                color: '#10b981',
+                                border: 'none',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title={isBorrow ? 'Trả nợ' : 'Thu hồi nợ'}
+                            >
+                              <Coins size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('Bạn có chắc chắn muốn xóa khoản nợ này khỏi sổ ghi nợ? Thao tác này sẽ không tạo giao dịch hoàn trả tiền ví.')) {
+                                  deleteDebt(d.id);
+                                }
+                              }}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                border: 'none',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title="Xóa khoản nợ"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            );
+          })()}
         </>
       )}
 
@@ -1723,7 +1804,9 @@ export const Wallets: React.FC = () => {
         <div className="modal-overlay" onClick={() => setShowAddDebtModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Ghi nợ mới (Cho vay)</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
+                {newDebtType === 'borrow' ? 'Ghi nợ mới (Đi vay)' : 'Ghi nợ mới (Cho vay)'}
+              </h2>
               <button className="modal-close" onClick={() => setShowAddDebtModal(false)}>
                 <X size={18} />
               </button>
@@ -1732,10 +1815,10 @@ export const Wallets: React.FC = () => {
             <form onSubmit={handleAddDebtSubmit}>
               {/* Borrower Name */}
               <div className="form-group">
-                <label>TÊN NGƯỜI VAY</label>
+                <label>{newDebtType === 'borrow' ? 'TÊN CHỦ NỢ' : 'TÊN NGƯỜI VAY'}</label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Nguyễn Văn A..."
+                  placeholder={newDebtType === 'borrow' ? "Ví dụ: Nguyễn Văn A..." : "Ví dụ: Nguyễn Văn A..."}
                   value={debtBorrower}
                   onChange={e => setDebtBorrower(e.target.value)}
                   className="form-input"
@@ -1746,7 +1829,7 @@ export const Wallets: React.FC = () => {
 
               {/* Amount */}
               <div className="form-group">
-                <label>SỐ TIỀN VAY (VND)</label>
+                <label>{newDebtType === 'borrow' ? 'SỐ TIỀN VAY (VND)' : 'SỐ TIỀN CHO VAY (VND)'}</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -1760,14 +1843,16 @@ export const Wallets: React.FC = () => {
 
               {/* Source Wallet */}
               <div className="form-group">
-                <label>NGUỒN TIỀN XUẤT PHÁT</label>
+                <label>{newDebtType === 'borrow' ? 'VÍ NHẬN TIỀN' : 'NGUỒN TIỀN XUẤT PHÁT'}</label>
                 <select
                   value={debtWalletId}
                   onChange={e => setDebtWalletId(e.target.value)}
                   className="form-select"
                   required
                 >
-                  <option value="none">❌ Không chọn nguồn (đã cho vay từ trước)</option>
+                  <option value="none">
+                    {newDebtType === 'borrow' ? '❌ Không chọn ví (đã vay từ trước)' : '❌ Không chọn nguồn (đã cho vay từ trước)'}
+                  </option>
                   {wallets.map(w => (
                     <option key={w.id} value={w.id}>
                       {w.name} ({formatCurrency(w.balance)})
@@ -1803,10 +1888,16 @@ export const Wallets: React.FC = () => {
               <button
                 type="submit"
                 className="button-primary"
-                style={{ width: '100%', padding: '14px', marginTop: '16px' }}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  marginTop: '16px',
+                  background: newDebtType === 'borrow' ? '#ef4444' : 'var(--primary)',
+                  boxShadow: newDebtType === 'borrow' ? '0 4px 12px rgba(239, 68, 68, 0.2)' : '0 4px 12px var(--primary-glow)'
+                }}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Đang lưu...' : 'Ghi nợ'}
+                {isSubmitting ? 'Đang lưu...' : (newDebtType === 'borrow' ? 'Ghi nợ (Đi vay)' : 'Ghi nợ (Cho vay)')}
               </button>
             </form>
           </div>
@@ -1818,7 +1909,9 @@ export const Wallets: React.FC = () => {
         <div className="modal-overlay" onClick={() => { setShowRepayModal(false); setRepayDebtItem(null); }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Thu hồi nợ: {repayDebtItem.borrower}</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
+                {repayDebtItem.type === 'borrow' ? `Trả nợ cho: ${repayDebtItem.borrower}` : `Thu hồi nợ: ${repayDebtItem.borrower}`}
+              </h2>
               <button className="modal-close" onClick={() => { setShowRepayModal(false); setRepayDebtItem(null); }}>
                 <X size={18} />
               </button>
@@ -1827,7 +1920,7 @@ export const Wallets: React.FC = () => {
             <form onSubmit={handleRepayDebtSubmit}>
               {/* Repay Amount */}
               <div className="form-group">
-                <label>SỐ TIỀN THU HỒI (VND)</label>
+                <label>{repayDebtItem.type === 'borrow' ? 'SỐ TIỀN TRẢ NỢ (VND)' : 'SỐ TIỀN THU HỒI (VND)'}</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -1839,13 +1932,13 @@ export const Wallets: React.FC = () => {
                   autoFocus
                 />
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
-                  Khoản vay gốc: {formatCurrency(repayDebtItem.amount)}
+                  {repayDebtItem.type === 'borrow' ? 'Khoản nợ gốc:' : 'Khoản vay gốc:'} {formatCurrency(repayDebtItem.amount)}
                 </span>
               </div>
 
               {/* Destination Wallet */}
               <div className="form-group">
-                <label>VÍ / TÀI KHOẢN NHẬN TIỀN</label>
+                <label>{repayDebtItem.type === 'borrow' ? 'VÍ XUẤT TIỀN ĐỂ TRẢ' : 'VÍ / TÀI KHOẢN NHẬN TIỀN'}</label>
                 <select
                   value={repayWalletId}
                   onChange={e => setRepayWalletId(e.target.value)}
@@ -1863,10 +1956,16 @@ export const Wallets: React.FC = () => {
               <button
                 type="submit"
                 className="button-primary"
-                style={{ width: '100%', padding: '14px', marginTop: '16px' }}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  marginTop: '16px',
+                  background: repayDebtItem.type === 'borrow' ? '#ef4444' : 'var(--primary)',
+                  boxShadow: repayDebtItem.type === 'borrow' ? '0 4px 12px rgba(239, 68, 68, 0.2)' : '0 4px 12px var(--primary-glow)'
+                }}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Đang thực hiện...' : 'Thu hồi'}
+                {isSubmitting ? 'Đang thực hiện...' : (repayDebtItem.type === 'borrow' ? 'Trả nợ' : 'Thu hồi')}
               </button>
             </form>
           </div>

@@ -56,7 +56,8 @@ const Debt = mongoose.model('Debt', new mongoose.Schema({
   walletId: { type: String, required: true },
   date: { type: String, required: true },
   description: { type: String },
-  status: { type: String, default: 'pending' }
+  status: { type: String, default: 'pending' },
+  type: { type: String, required: true, default: 'loan' }
 }, { timestamps: true }));
 
 const Asset = mongoose.model('Asset', new mongoose.Schema({

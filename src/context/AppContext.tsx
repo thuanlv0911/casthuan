@@ -330,24 +330,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await new Promise(resolve => setTimeout(resolve, 100));
 
       if (debtData.walletId && debtData.walletId !== 'none' && debtData.walletId !== '') {
-        // 2. Create the associated expense transaction
+        const isBorrow = debtData.type === 'borrow';
+        const txType = isBorrow ? 'income' : 'expense';
+        const categoryName = isBorrow ? 'Đi vay' : 'Nợ';
+        const txDescription = isBorrow
+          ? `Vay từ ${debtData.borrower}: ${debtData.description || 'Vay nợ'}`
+          : `Cho ${debtData.borrower} vay: ${debtData.description || 'Cho vay'}`;
+
+        // 2. Create the associated transaction
         const newTx = await api.createTransaction({
-          type: 'expense',
+          type: txType,
           amount: debtData.amount,
-          category: 'Nợ',
+          category: categoryName,
           walletId: debtData.walletId,
           date: debtData.date,
-          description: `Cho ${debtData.borrower} vay: ${debtData.description || 'Cho vay'}`,
+          description: txDescription,
         });
         // Add delay for json-server file system write
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // 3. Deduct from wallet balance
+        // 3. Update wallet balance
         const updatedWallets = [...wallets];
         const walletIndex = updatedWallets.findIndex(w => w.id === debtData.walletId);
         if (walletIndex !== -1) {
           const w = updatedWallets[walletIndex];
-          const newBalance = w.balance - debtData.amount;
+          const newBalance = isBorrow ? w.balance + debtData.amount : w.balance - debtData.amount;
           await api.updateWallet(w.id, { balance: newBalance });
           updatedWallets[walletIndex] = { ...w, balance: newBalance };
         }
@@ -388,24 +395,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Add delay for json-server file system write
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // 2. Create the associated income transaction
+      const isBorrow = debt.type === 'borrow';
+      const txType = isBorrow ? 'expense' : 'income';
+      const categoryName = isBorrow ? 'Trả nợ' : 'Nợ';
+      const txDescription = isBorrow
+        ? `Trả nợ cho ${debt.borrower}: ${debt.description || 'Trả nợ'}`
+        : `${debt.borrower} trả nợ: ${debt.description || 'Trả nợ'}`;
+
+      // 2. Create the associated transaction
       const newTx = await api.createTransaction({
-        type: 'income',
+        type: txType,
         amount: amountToRepay,
-        category: 'Nợ',
+        category: categoryName,
         walletId: destWalletId,
         date: todayStr,
-        description: `${debt.borrower} trả nợ: ${debt.description || 'Trả nợ'}`,
+        description: txDescription,
       });
       // Add delay for json-server file system write
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // 3. Add to destination wallet balance
+      // 3. Update wallet balance
       const updatedWallets = [...wallets];
       const walletIndex = updatedWallets.findIndex(w => w.id === destWalletId);
       if (walletIndex !== -1) {
         const w = updatedWallets[walletIndex];
-        const newBalance = w.balance + amountToRepay;
+        const newBalance = isBorrow ? w.balance - amountToRepay : w.balance + amountToRepay;
         await api.updateWallet(w.id, { balance: newBalance });
         updatedWallets[walletIndex] = { ...w, balance: newBalance };
       }
