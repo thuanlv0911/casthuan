@@ -38,9 +38,13 @@ export const Analytics: React.FC = () => {
 
   // Filter transactions for selected month and selected wallet
   const monthTransactions = useMemo(() => {
+    const DEBT_CATEGORIES = ['Đi vay', 'Nợ', 'Trả nợ', 'Vay', 'Cho vay'];
     return transactions.filter(t => {
       const matchMonth = t.date.startsWith(currentMonthPrefix);
       if (!matchMonth) return false;
+      
+      // Exclude debt-related transactions from stats
+      if (DEBT_CATEGORIES.includes(t.category)) return false;
       
       if (selectedWalletId === 'All') return true;
       

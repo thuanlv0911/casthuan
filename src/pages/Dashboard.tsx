@@ -37,9 +37,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenManageCategories, on
     let monthlyExpense = 0;
 
     const currentMonthPrefix = `${currentMonthYear.year}-${String(currentMonthYear.month).padStart(2, '0')}`;
+    const DEBT_CATEGORIES = ['Đi vay', 'Nợ', 'Trả nợ', 'Vay', 'Cho vay'];
 
     transactions.forEach(t => {
-      if (t.date.startsWith(currentMonthPrefix)) {
+      if (t.date.startsWith(currentMonthPrefix) && !DEBT_CATEGORIES.includes(t.category)) {
         if (t.type === 'income') {
           monthlyIncome += t.amount;
         } else if (t.type === 'expense') {
@@ -60,9 +61,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenManageCategories, on
   const categoryBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};
     const currentMonthPrefix = `${currentMonthYear.year}-${String(currentMonthYear.month).padStart(2, '0')}`;
+    const DEBT_CATEGORIES = ['Đi vay', 'Nợ', 'Trả nợ', 'Vay', 'Cho vay'];
 
     transactions
-      .filter(t => t.type === 'expense' && t.date.startsWith(currentMonthPrefix))
+      .filter(t => t.type === 'expense' && t.date.startsWith(currentMonthPrefix) && !DEBT_CATEGORIES.includes(t.category))
       .forEach(t => {
         breakdown[t.category] = (breakdown[t.category] || 0) + t.amount;
       });

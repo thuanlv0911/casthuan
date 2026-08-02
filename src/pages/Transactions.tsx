@@ -295,9 +295,12 @@ export const Transactions: React.FC<TransactionsProps> = ({ onOpenEdit }) => {
             // Compute daily sums
             let dayIncome = 0;
             let dayExpense = 0;
+            const DEBT_CATEGORIES = ['Đi vay', 'Nợ', 'Trả nợ', 'Vay', 'Cho vay'];
             txs.forEach(t => {
-              if (t.type === 'income') dayIncome += t.amount;
-              else if (t.type === 'expense') dayExpense += t.amount;
+              if (!DEBT_CATEGORIES.includes(t.category)) {
+                if (t.type === 'income') dayIncome += t.amount;
+                else if (t.type === 'expense') dayExpense += t.amount;
+              }
             });
 
             return (
