@@ -323,7 +323,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
 
           {/* Wallets selectors */}
           {type === 'transfer' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
               <div className="form-group">
                 <label>TỪ VÍ / NGÂN HÀNG</label>
                 <select

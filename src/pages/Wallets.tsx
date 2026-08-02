@@ -1449,7 +1449,7 @@ export const Wallets: React.FC = () => {
             <form onSubmit={handleTransfer}>
 
               {/* Select Source and Target */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label>TỪ VÍ (NGUỒN)</label>
                   <select
