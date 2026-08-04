@@ -309,7 +309,7 @@ export const Wallets: React.FC = () => {
 
   const handleOpenRepayModal = (debt: any) => {
     setRepayDebtItem(debt);
-    setRepayAmount(new Intl.NumberFormat('vi-VN').format(debt.amount));
+    setRepayAmount('');
     if (wallets.length > 0) {
       setRepayWalletId(wallets[0].id);
     }
@@ -1848,6 +1848,34 @@ export const Wallets: React.FC = () => {
             </div>
 
             <form onSubmit={handleRepayDebtSubmit}>
+              {/* Khoản nợ/vay gốc hiển thị lớn ở trên */}
+              <div style={{
+                textAlign: 'center',
+                margin: '12px 0 20px 0',
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '12px',
+                border: '1px dashed rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{
+                  fontSize: '11px',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em',
+                  marginBottom: '6px',
+                  textTransform: 'uppercase'
+                }}>
+                  {repayDebtItem.type === 'borrow' ? 'Số tiền đang nợ (gốc)' : 'Số tiền cho vay (gốc)'}
+                </div>
+                <div style={{
+                  fontSize: '24px',
+                  fontWeight: 800,
+                  color: repayDebtItem.type === 'borrow' ? '#ef4444' : '#f59e0b'
+                }}>
+                  {formatCurrency(repayDebtItem.amount)}
+                </div>
+              </div>
+
               {/* Repay Amount */}
               <div className="form-group">
                 <label>{repayDebtItem.type === 'borrow' ? 'SỐ TIỀN TRẢ NỢ (VND)' : 'SỐ TIỀN THU HỒI (VND)'}</label>
@@ -1861,9 +1889,6 @@ export const Wallets: React.FC = () => {
                   required
                   autoFocus
                 />
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
-                  {repayDebtItem.type === 'borrow' ? 'Khoản nợ gốc:' : 'Khoản vay gốc:'} {formatCurrency(repayDebtItem.amount)}
-                </span>
               </div>
 
               {/* Destination Wallet */}
