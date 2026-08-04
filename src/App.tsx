@@ -7,14 +7,14 @@ import { Wallets } from './pages/Wallets';
 import { Analytics } from './pages/Analytics';
 import { TransactionForm } from './components/TransactionForm';
 import { CategoryManager } from './components/CategoryManager';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle2, Info } from 'lucide-react';
 import type { Transaction } from './services/api';
 
 function AppContent() {
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const { activeTab, error, isLoading, refreshData } = useApp();
+  const { activeTab, error, isLoading, refreshData, toasts } = useApp();
 
   const handleOpenEdit = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -131,6 +131,55 @@ function AppContent() {
       {/* Category Manager Modal */}
       <CategoryManager isOpen={isCategoryManagerOpen} onClose={() => setIsCategoryManagerOpen(false)} />
 
+      {/* Toast Container */}
+      <div style={{
+        position: 'absolute',
+        top: '76px',
+        right: '16px',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        pointerEvents: 'none',
+        maxWidth: '280px',
+        width: 'calc(100% - 32px)',
+      }}>
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            style={{
+              pointerEvents: 'auto',
+              background: 'rgba(24, 24, 27, 0.9)',
+              backdropFilter: 'blur(12px)',
+              border: toast.type === 'success' 
+                ? '1px solid rgba(16, 185, 129, 0.2)' 
+                : toast.type === 'error' 
+                ? '1px solid rgba(244, 63, 94, 0.2)' 
+                : '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              color: toast.type === 'success'
+                ? '#10b981'
+                : toast.type === 'error'
+                ? '#f43f5e'
+                : '#818cf8',
+              fontSize: '12px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              animation: 'toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            }}
+          >
+            {toast.type === 'success' && <CheckCircle2 size={14} style={{ flexShrink: 0 }} />}
+            {toast.type === 'error' && <AlertCircle size={14} style={{ flexShrink: 0 }} />}
+            {toast.type === 'info' && <Info size={14} style={{ flexShrink: 0 }} />}
+            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{toast.message}</span>
+          </div>
+        ))}
+      </div>
+
       <style>{`
         .refresh-btn:active {
           background: rgba(255, 255, 255, 0.05);
@@ -141,6 +190,16 @@ function AppContent() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes toastSlideIn {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
         }
       `}</style>
     </>

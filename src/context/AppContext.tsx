@@ -3,6 +3,12 @@ import type { ReactNode } from 'react';
 import { api } from '../services/api';
 import type { Wallet, Transaction, Debt, Asset, Category } from '../services/api';
 
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 interface AppContextType {
   wallets: Wallet[];
   transactions: Transaction[];
@@ -30,6 +36,8 @@ interface AppContextType {
   addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  toasts: Toast[];
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const WALLET_ORDER_MAP: { [key: string]: number } = {
@@ -65,6 +73,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
 
   const refreshData = async () => {
     setIsLoading(true);
@@ -149,6 +166,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (dateDiff !== 0) return dateDiff;
         return b.id.localeCompare(a.id);
       }));
+
+      if (txData.type === 'expense') {
+        showToast('Đã ghi nhận khoản chi tiêu!', 'success');
+      } else if (txData.type === 'income') {
+        showToast('Đã ghi nhận khoản thu nhập!', 'success');
+      } else if (txData.type === 'transfer') {
+        showToast('Chuyển khoản thành công!', 'success');
+      }
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể thêm giao dịch.');
@@ -210,6 +235,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       setWallets(updatedWallets);
       setTransactions(prev => prev.filter(t => t.id !== id));
+      showToast('Đã xóa giao dịch!', 'info');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể xóa giao dịch.');
@@ -287,6 +313,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (dateDiff !== 0) return dateDiff;
         return b.id.localeCompare(a.id);
       }));
+      showToast('Đã cập nhật giao dịch thành công!', 'success');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể cập nhật giao dịch.');
@@ -300,6 +327,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const newWallet = await api.createWallet(walletData);
       setWallets(prev => [...prev, newWallet].sort((a, b) => getWalletSortOrder(a.name) - getWalletSortOrder(b.name)));
+      showToast(`Đã thêm ví "${walletData.name}" thành công!`, 'success');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể thêm ví.');
@@ -316,6 +344,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         prev.map(w => w.id === id ? { ...w, ...updatedWallet } : w)
             .sort((a, b) => getWalletSortOrder(a.name) - getWalletSortOrder(b.name))
       );
+      showToast('Đã cập nhật thông tin ví!', 'success');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể cập nhật ví.');
@@ -329,6 +358,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await api.deleteWallet(id);
       setWallets(prev => prev.filter(w => w.id !== id));
+      showToast('Đã xóa ví!', 'info');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể xóa ví.');
@@ -384,6 +414,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       setDebts(prev => [newDebt, ...prev]);
+      showToast(`Đã ghi nhận nợ mới từ ${debtData.borrower}!`, 'success');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể ghi nợ mới.');
@@ -452,6 +483,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (dateDiff !== 0) return dateDiff;
         return b.id.localeCompare(a.id);
       }));
+
+      if (isBorrow) {
+        showToast(`Đã trả nợ cho ${debt.borrower} thành công!`, 'success');
+      } else {
+        showToast(`Đã thu hồi nợ từ ${debt.borrower} thành công!`, 'success');
+      }
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể thu hồi nợ.');
@@ -465,6 +502,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await api.deleteDebt(id);
       setDebts(prev => prev.filter(d => d.id !== id));
+      showToast('Đã xóa khoản nợ khỏi sổ!', 'info');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể xóa khoản nợ.');
@@ -478,6 +516,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const newAsset = await api.createAsset(assetData);
       setAssets(prev => [newAsset, ...prev]);
+      showToast('Đã thêm tài sản mới!', 'success');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể thêm tài sản mới.');
@@ -491,6 +530,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const updatedAsset = await api.updateAsset(id, assetData);
       setAssets(prev => prev.map(a => a.id === id ? updatedAsset : a));
+      showToast('Đã cập nhật thông tin tài sản!', 'success');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể cập nhật tài sản.');
@@ -504,6 +544,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await api.deleteAsset(id);
       setAssets(prev => prev.filter(a => a.id !== id));
+      showToast('Đã xóa tài sản!', 'info');
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || 'Không thể xóa tài sản.');
@@ -596,6 +637,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addCategory,
         updateCategory,
         deleteCategory,
+        toasts,
+        showToast,
       }}
     >
       {children}
