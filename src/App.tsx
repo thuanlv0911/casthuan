@@ -132,50 +132,51 @@ function AppContent() {
       <CategoryManager isOpen={isCategoryManagerOpen} onClose={() => setIsCategoryManagerOpen(false)} />
 
       {/* Toast Container */}
-      <div style={{
-        position: 'absolute',
-        top: '76px',
-        right: '16px',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        pointerEvents: 'none',
-        maxWidth: '280px',
-        width: 'calc(100% - 32px)',
-      }}>
+      <div 
+        className="toast-container"
+        style={{
+          position: 'fixed',
+          bottom: '90px',
+          right: '16px',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          pointerEvents: 'none',
+          maxWidth: '300px',
+          width: 'calc(100% - 32px)',
+        }}
+      >
         {toasts.map(toast => (
           <div
             key={toast.id}
             style={{
               pointerEvents: 'auto',
-              background: 'rgba(24, 24, 27, 0.9)',
-              backdropFilter: 'blur(12px)',
-              border: toast.type === 'success' 
-                ? '1px solid rgba(16, 185, 129, 0.2)' 
+              background: toast.type === 'success' 
+                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
                 : toast.type === 'error' 
-                ? '1px solid rgba(244, 63, 94, 0.2)' 
-                : '1px solid rgba(99, 102, 241, 0.2)',
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
               borderRadius: '12px',
-              padding: '10px 14px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-              color: toast.type === 'success'
-                ? '#10b981'
+              padding: '12px 16px',
+              boxShadow: toast.type === 'success'
+                ? '0 10px 20px rgba(16, 185, 129, 0.3)'
                 : toast.type === 'error'
-                ? '#f43f5e'
-                : '#818cf8',
-              fontSize: '12px',
+                ? '0 10px 20px rgba(239, 68, 68, 0.3)'
+                : '0 10px 20px rgba(99, 102, 241, 0.3)',
+              color: '#ffffff',
+              fontSize: '13px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              animation: 'toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              gap: '10px',
+              animation: 'toastSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             }}
           >
-            {toast.type === 'success' && <CheckCircle2 size={14} style={{ flexShrink: 0 }} />}
-            {toast.type === 'error' && <AlertCircle size={14} style={{ flexShrink: 0 }} />}
-            {toast.type === 'info' && <Info size={14} style={{ flexShrink: 0 }} />}
-            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{toast.message}</span>
+            {toast.type === 'success' && <CheckCircle2 size={16} color="#ffffff" style={{ flexShrink: 0 }} />}
+            {toast.type === 'error' && <AlertCircle size={16} color="#ffffff" style={{ flexShrink: 0 }} />}
+            {toast.type === 'info' && <Info size={16} color="#ffffff" style={{ flexShrink: 0 }} />}
+            <span style={{ flex: 1, color: '#ffffff', fontWeight: 500 }}>{toast.message}</span>
           </div>
         ))}
       </div>
@@ -191,14 +192,19 @@ function AppContent() {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes toastSlideIn {
+        @keyframes toastSlideUp {
           from {
-            transform: translateX(120%);
+            transform: translateY(40px);
             opacity: 0;
           }
           to {
-            transform: translateX(0);
+            transform: translateY(0);
             opacity: 1;
+          }
+        }
+        @media (min-width: 480px) {
+          .toast-container {
+            right: calc(50% - 240px + 16px) !important;
           }
         }
       `}</style>

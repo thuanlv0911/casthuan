@@ -159,12 +159,14 @@ export const Analytics: React.FC = () => {
             }}
             className="form-select"
             style={{
-              padding: '8px 12px 8px 30px',
+              padding: '8px 30px 8px 30px',
               fontSize: '13px',
               fontWeight: 600,
               borderRadius: '10px',
-              background: 'var(--card-bg)',
-              border: '1px solid var(--card-border)'
+              backgroundColor: 'var(--card-bg)',
+              border: '1px solid var(--card-border)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer'
             }}
           >
             {availableMonthsYears.map(item => (
@@ -176,58 +178,39 @@ export const Analytics: React.FC = () => {
         </div>
       </div>
 
-      {/* Wallet Pill Filters */}
+      {/* Wallet Filter Dropdown */}
       <div 
         style={{ 
           display: 'flex', 
-          flexWrap: 'wrap', 
+          alignItems: 'center', 
           gap: '8px', 
           marginTop: '-4px'
         }}
       >
-        <button
-          type="button"
-          onClick={() => setSelectedWalletId('All')}
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lọc theo ví:</span>
+        <select 
+          value={selectedWalletId}
+          onChange={e => setSelectedWalletId(e.target.value)}
+          className="form-select"
           style={{
-            background: selectedWalletId === 'All' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-            border: selectedWalletId === 'All' ? '1px solid var(--primary)' : '1px solid var(--card-border)',
-            color: '#fff',
-            padding: '8px 14px',
-            borderRadius: '20px',
-            fontSize: '12px',
+            padding: '8px 30px 8px 12px',
+            fontSize: '13px',
             fontWeight: 600,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s',
-            boxShadow: selectedWalletId === 'All' ? '0 4px 10px var(--primary-glow)' : 'none',
-            flexShrink: 0
+            borderRadius: '10px',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            color: 'var(--text-primary)',
+            minWidth: '160px',
+            cursor: 'pointer'
           }}
         >
-          Tất cả ví
-        </button>
-        {wallets.map(w => (
-          <button
-            key={w.id}
-            type="button"
-            onClick={() => setSelectedWalletId(w.id)}
-            style={{
-              background: selectedWalletId === w.id ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-              border: selectedWalletId === w.id ? '1px solid var(--primary)' : '1px solid var(--card-border)',
-              color: '#fff',
-              padding: '8px 14px',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s',
-              boxShadow: selectedWalletId === w.id ? '0 4px 10px var(--primary-glow)' : 'none',
-              flexShrink: 0
-            }}
-          >
-            {w.name}
-          </button>
-        ))}
+          <option value="All">Tất cả ví</option>
+          {wallets.map(w => (
+            <option key={w.id} value={w.id}>
+              {w.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Summary Box */}
