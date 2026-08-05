@@ -1186,11 +1186,12 @@ export const Wallets: React.FC = () => {
                           borderRadius: '16px',
                           padding: '16px',
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
+                          flexDirection: 'column',
+                          gap: '12px',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                         }}
                       >
+                        {/* Top Section: Borrower Info */}
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                           <div style={{
                             width: '40px',
@@ -1200,15 +1201,16 @@ export const Wallets: React.FC = () => {
                             color: isBorrow ? '#ef4444' : '#f59e0b',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            flexShrink: 0
                           }}>
                             <User size={20} />
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
                             <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {isBorrow ? `Chủ nợ: ${d.borrower}` : d.borrower}
                             </span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                               {isBorrow ? 'Ngày vay:' : 'Ngày vay:'} {d.date} {d.description ? `• ${d.description}` : ''}
                             </span>
                             {w ? (
@@ -1223,11 +1225,15 @@ export const Wallets: React.FC = () => {
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: 800, color: isBorrow ? '#ef4444' : '#f59e0b' }}>
+                        {/* Divider */}
+                        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}></div>
+
+                        {/* Bottom Section: Amount & Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '17px', fontWeight: 800, color: isBorrow ? '#ef4444' : '#f59e0b' }}>
                             {formatCurrency(d.amount)}
                           </span>
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                               type="button"
                               onClick={() => handleOpenRepayModal(d)}
@@ -1235,18 +1241,20 @@ export const Wallets: React.FC = () => {
                                 background: 'rgba(16, 185, 129, 0.1)',
                                 color: '#10b981',
                                 border: 'none',
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
+                                padding: '6px 12px',
+                                borderRadius: '20px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
+                                gap: '6px',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                fontSize: '12px',
+                                fontWeight: 600
                               }}
                               title={isBorrow ? 'Trả nợ' : 'Thu hồi nợ'}
                             >
-                              <Coins size={15} />
+                              <Coins size={14} />
+                              <span>{isBorrow ? 'Trả nợ' : 'Thu hồi'}</span>
                             </button>
                             <button
                               type="button"
