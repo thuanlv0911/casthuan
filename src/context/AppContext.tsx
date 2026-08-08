@@ -370,8 +370,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addDebt = async (debtData: Omit<Debt, 'id'>) => {
     setIsLoading(true);
     try {
+      const dataToSave = {
+        ...debtData,
+        originalAmount: debtData.originalAmount ?? debtData.amount,
+        repayments: debtData.repayments ?? []
+      };
       // 1. Create debt on server
-      const newDebt = await api.createDebt(debtData);
+      const newDebt = await api.createDebt(dataToSave as any);
       // Add delay for json-server file system write
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -432,12 +437,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const newRemainingDebt = debt.amount - amountToRepay;
       const todayStr = new Date().toISOString().split('T')[0];
 
+      const newRepayment = {
+        id: Math.random().toString(36).substring(2, 9),
+        amount: amountToRepay,
+        date: todayStr,
+        walletId: destWalletId
+      };
+
       // 1. Update debt on server
       let updatedDebt: Debt | null = null;
       if (newRemainingDebt <= 0) {
         await api.deleteDebt(id);
       } else {
-        updatedDebt = await api.updateDebt(id, { amount: newRemainingDebt });
+        updatedDebt = await api.updateDebt(id, { 
+          amount: newRemainingDebt,
+          repayments: [...(debt.repayments || []), newRepayment]
+        });
       }
       // Add delay for json-server file system write
       await new Promise(resolve => setTimeout(resolve, 100));

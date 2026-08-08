@@ -37,15 +37,24 @@ export interface Transaction {
   description: string;
 }
 
+export interface RepaymentRecord {
+  id: string;
+  amount: number;
+  date: string;
+  walletId: string;
+}
+
 export interface Debt {
   id: string;
   borrower: string;
   amount: number;
+  originalAmount?: number;
   walletId: string;
   date: string;
   description: string;
   status: 'pending' | 'paid';
   type: 'loan' | 'borrow';
+  repayments?: RepaymentRecord[];
 }
 
 const API_BASE = import.meta.env.VITE_API_URL 

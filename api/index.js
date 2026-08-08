@@ -53,11 +53,18 @@ const Debt = mongoose.model('Debt', new mongoose.Schema({
   id: { type: String, default: () => crypto.randomUUID(), unique: true },
   borrower: { type: String, required: true },
   amount: { type: Number, required: true },
+  originalAmount: { type: Number },
   walletId: { type: String, required: true },
   date: { type: String, required: true },
   description: { type: String },
   status: { type: String, default: 'pending' },
-  type: { type: String, required: true, default: 'loan' }
+  type: { type: String, required: true, default: 'loan' },
+  repayments: [{
+    id: String,
+    amount: Number,
+    date: String,
+    walletId: String
+  }]
 }, { timestamps: true }));
 
 const Asset = mongoose.model('Asset', new mongoose.Schema({
