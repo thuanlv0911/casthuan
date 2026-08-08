@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins, RefreshCw } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowRightLeft, X, Pencil, User, Coins, RefreshCw, History } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/format';
 import type { Wallet, Asset } from '../services/api';
@@ -41,6 +41,10 @@ export const Wallets: React.FC = () => {
   const [repayDebtItem, setRepayDebtItem] = useState<any>(null);
   const [repayAmount, setRepayAmount] = useState<string>('');
   const [repayWalletId, setRepayWalletId] = useState<string>('');
+
+  // Debt History Modal State
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
+  const [historyDebtItem, setHistoryDebtItem] = useState<any>(null);
 
   // Add Asset Form State
   const [showAddAssetModal, setShowAddAssetModal] = useState<boolean>(false);
@@ -314,6 +318,11 @@ export const Wallets: React.FC = () => {
       setRepayWalletId(wallets[0].id);
     }
     setShowRepayModal(true);
+  };
+
+  const handleOpenHistoryModal = (debt: any) => {
+    setHistoryDebtItem(debt);
+    setShowHistoryModal(true);
   };
 
   const handleRepayDebtSubmit = async (e: React.FormEvent) => {
@@ -1192,7 +1201,7 @@ export const Wallets: React.FC = () => {
                         }}
                       >
                         {/* Top Section: Borrower Info */}
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                           <div style={{
                             width: '40px',
                             height: '40px',
@@ -1210,9 +1219,19 @@ export const Wallets: React.FC = () => {
                             <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {isBorrow ? `Chủ nợ: ${d.borrower}` : d.borrower}
                             </span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
-                              {isBorrow ? 'Ngày vay:' : 'Ngày vay:'} {d.date} {d.description ? `• ${d.description}` : ''}
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              {isBorrow ? 'Ngày vay:' : 'Ngày cho vay:'} {d.date}
                             </span>
+                            {d.description && (
+                              <span style={{ 
+                                fontSize: '11px', 
+                                color: 'var(--text-secondary)', 
+                                wordBreak: 'break-word',
+                                marginTop: '4px'
+                              }}>
+                                Ghi chú: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{d.description}</span>
+                              </span>
+                            )}
                             {w ? (
                               <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
                                 {isBorrow ? 'Nhận vào ví:' : 'Nguồn xuất:'} <strong style={{ color: w.color }}>{w.name}</strong>
@@ -1255,6 +1274,26 @@ export const Wallets: React.FC = () => {
                             >
                               <Coins size={14} />
                               <span>{isBorrow ? 'Trả nợ' : 'Thu hồi'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenHistoryModal(d)}
+                              style={{
+                                background: 'rgba(99, 102, 241, 0.1)',
+                                color: '#6366f1',
+                                border: 'none',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title="Xem lịch sử trả nợ"
+                            >
+                              <History size={14} />
                             </button>
                             <button
                               type="button"
@@ -1931,6 +1970,153 @@ export const Wallets: React.FC = () => {
                 {isSubmitting ? 'Đang thực hiện...' : (repayDebtItem.type === 'borrow' ? 'Trả nợ' : 'Thu hồi')}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Debt History Modal Overlay */}
+      {showHistoryModal && historyDebtItem && (
+        <div className="modal-overlay" onClick={() => { setShowHistoryModal(false); setHistoryDebtItem(null); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '390px' }}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
+                Lịch sử: {historyDebtItem.type === 'borrow' ? `Nợ ${historyDebtItem.borrower}` : `Cho ${historyDebtItem.borrower} vay`}
+              </h2>
+              <button className="modal-close" onClick={() => { setShowHistoryModal(false); setHistoryDebtItem(null); }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '12px' }}>
+              {/* Debt Summary */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '16px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{historyDebtItem.date}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Nội dung:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>{historyDebtItem.description || 'Không có ghi chú'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Ví liên kết gốc:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {(() => {
+                      const w = wallets.find(wallet => wallet.id === historyDebtItem.walletId);
+                      return w ? w.name : 'Không qua ví';
+                    })()}
+                  </span>
+                </div>
+                
+                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '6px 0' }}></div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Số tiền gốc ban đầu:</span>
+                  <span style={{ fontWeight: 700, color: '#ffffff', fontSize: '14px' }}>
+                    {formatCurrency(historyDebtItem.originalAmount ?? historyDebtItem.amount)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Đã trả / thu hồi:</span>
+                  <span style={{ fontWeight: 700, color: '#10b981', fontSize: '14px' }}>
+                    {formatCurrency((historyDebtItem.originalAmount ?? historyDebtItem.amount) - historyDebtItem.amount)}
+                  </span>
+                </div>
+                
+                <div style={{ borderTop: '1px dashed rgba(255, 255, 255, 0.12)', margin: '6px 0' }}></div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Số tiền còn lại:</span>
+                  <span style={{ fontWeight: 800, color: historyDebtItem.type === 'borrow' ? '#ef4444' : '#f59e0b', fontSize: '17px' }}>
+                    {formatCurrency(historyDebtItem.amount)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Repayments History List */}
+              <div>
+                <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '14px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Lịch sử thanh toán chi tiết ({historyDebtItem.repayments?.length || 0})
+                </h3>
+                
+                {!historyDebtItem.repayments || historyDebtItem.repayments.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '24px',
+                    color: 'var(--text-secondary)',
+                    background: 'rgba(255, 255, 255, 0.01)',
+                    border: '1px dashed var(--card-border)',
+                    borderRadius: '12px',
+                    fontSize: '13px'
+                  }}>
+                    Chưa có lượt trả nợ nào được ghi nhận.
+                  </div>
+                ) : (
+                  <div style={{
+                    position: 'relative',
+                    borderLeft: '2px solid rgba(255, 255, 255, 0.08)',
+                    marginLeft: '12px',
+                    paddingLeft: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    paddingRight: '8px',
+                    paddingTop: '4px',
+                    paddingBottom: '4px'
+                  }}>
+                    {historyDebtItem.repayments.map((rep: any, idx: number) => {
+                      const repWallet = wallets.find(wallet => wallet.id === rep.walletId);
+                      return (
+                        <div key={rep.id || idx} style={{ position: 'relative' }}>
+                          {/* Dot on the timeline */}
+                          <div style={{
+                            position: 'absolute',
+                            left: '-27px',
+                            top: '4px',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            border: '3px solid var(--card-bg)',
+                            boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
+                          }} />
+                          
+                          {/* Content */}
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start'
+                          }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                Đợt #{idx + 1} • {rep.date}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                Qua ví: <strong style={{ color: repWallet?.color || 'var(--text-secondary)' }}>{repWallet ? repWallet.name : 'Không qua ví'}</strong>
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#10b981' }}>
+                              +{formatCurrency(rep.amount)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
